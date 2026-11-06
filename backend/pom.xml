@@ -21,6 +21,10 @@
     </dependencies>
   </dependencyManagement>
   <dependencies>
+    <dependency><groupId>io.quarkus</groupId><artifactId>quarkus-rest-csrf</artifactId></dependency>
+    <dependency><groupId>io.quarkus</groupId><artifactId>quarkus-mailer</artifactId></dependency>
+    <dependency><groupId>io.quarkus</groupId><artifactId>quarkus-scheduler</artifactId></dependency>
+    <dependency><groupId>com.password4j</groupId><artifactId>password4j</artifactId><version>1.8.4</version></dependency>
     <dependency>
       <groupId>io.quarkus</groupId>
       <artifactId>quarkus-rest-jackson</artifactId>

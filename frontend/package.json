@@ -1,1 +1,26 @@
-{"name":"travel-buddy","private":true,"type":"module","engines":{"node":">=24 <25"},"scripts":{"dev":"nuxt dev --host 127.0.0.1 --port 3000","build":"nuxt build","typecheck":"nuxt typecheck","postinstall":"nuxt prepare"},"dependencies":{"@nuxtjs/i18n":"10.6.0","nuxt":"4.6.4","vue":"3.5.45","vue-router":"5.4.0"},"devDependencies":{"typescript":"5.9.3","vue-tsc":"3.1.1"}}
+{
+  "name": "travel-buddy",
+  "private": true,
+  "type": "module",
+  "engines": {
+    "node": ">=24 <25"
+  },
+  "scripts": {
+    "dev": "nuxt dev --host 127.0.0.1 --port 3000",
+    "build": "nuxt build",
+    "typecheck": "nuxt typecheck",
+    "postinstall": "nuxt prepare",
+    "test:e2e": "playwright test"
+  },
+  "dependencies": {
+    "@nuxtjs/i18n": "10.6.0",
+    "nuxt": "4.6.4",
+    "vue": "3.5.45",
+    "vue-router": "5.4.0"
+  },
+  "devDependencies": {
+    "@playwright/test": "1.65.0",
+    "typescript": "5.9.3",
+    "vue-tsc": "3.1.1"
+  }
+}

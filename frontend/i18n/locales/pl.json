@@ -1,1 +1,42 @@
-{"trips": "Wyprawy", "intro": "Znajdź inspirację do wspólnej podróży.", "loading": "Ładowanie…", "error": "Nie udało się pobrać danych.", "empty": "Brak wypraw.", "retry": "Spróbuj ponownie", "back": "Powrót", "language": "Język treści", "missing": "Nie znaleziono wyprawy."}
+{
+  "trips": "Wyprawy",
+  "intro": "Znajdź inspirację do wspólnej podróży.",
+  "loading": "Ładowanie…",
+  "error": "Nie udało się pobrać danych.",
+  "empty": "Brak wypraw.",
+  "retry": "Spróbuj ponownie",
+  "back": "Powrót",
+  "language": "Język treści",
+  "missing": "Nie znaleziono wyprawy.",
+  "auth": {
+    "account": "Moje konto",
+    "logout": "Wyloguj",
+    "register": "Rejestracja",
+    "login": "Zaloguj",
+    "forgot": "Nie pamiętam hasła",
+    "reset": "Ustaw nowe hasło",
+    "email": "E-mail",
+    "password": "Hasło",
+    "confirmation": "Potwierdź hasło",
+    "accept": "Akceptuję",
+    "terms": "Lokalny regulamin roboczy",
+    "passwordHint": "Od 12 do 1024 znaków. Możesz użyć długiej frazy.",
+    "resetSent": "Jeśli aktywne konto z hasłem istnieje, wyślemy link do resetu. Sprawdź lokalny Mailpit.",
+    "resetDone": "Hasło zostało zmienione. Zaloguj się ponownie.",
+    "draftWarning": "Wersja robocza wyłącznie do lokalnych testów — niegotowa do publicznego uruchomienia.",
+    "draftText": "Konto służy do testowania Travel Buddy. Używaj danych testowych. Nie publikuj cudzych danych ani treści bezprawnych. Hasło przechowujemy jako hash, a sesja trwa do 7 dni.",
+    "draftMissing": "Przed publicznym startem trzeba uzupełnić administratora, kontakt, zasady usuwania danych i reklamacji oraz zweryfikować dokument prawnie.",
+    "errors": {
+      "VALIDATION_FAILED": "Sprawdź poprawność danych.",
+      "PASSWORD_MISMATCH": "Hasła muszą być takie same.",
+      "EMAIL_UNAVAILABLE": "Nie można użyć tego adresu e-mail.",
+      "INVALID_CREDENTIALS": "Nieprawidłowy e-mail lub hasło.",
+      "UNAUTHENTICATED": "Zaloguj się ponownie.",
+      "CSRF_INVALID": "Odśwież stronę i spróbuj ponownie.",
+      "ORIGIN_REJECTED": "Niedozwolone źródło żądania.",
+      "RATE_LIMITED": "Zbyt wiele prób. Spróbuj później.",
+      "RESET_INVALID": "Link jest nieprawidłowy, wygasł lub został już użyty.",
+      "UNKNOWN": "Nie udało się wykonać operacji. Spróbuj ponownie."
+    }
+  }
+}

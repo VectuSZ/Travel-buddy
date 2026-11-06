@@ -1,1 +1,42 @@
-{"trips": "Trips", "intro": "Find inspiration for your next shared adventure.", "loading": "Loading…", "error": "Could not load data.", "empty": "No trips yet.", "retry": "Retry", "back": "Back", "language": "Content language", "missing": "Trip not found."}
+{
+  "trips": "Trips",
+  "intro": "Find inspiration for your next shared adventure.",
+  "loading": "Loading…",
+  "error": "Could not load data.",
+  "empty": "No trips yet.",
+  "retry": "Retry",
+  "back": "Back",
+  "language": "Content language",
+  "missing": "Trip not found.",
+  "auth": {
+    "account": "My account",
+    "logout": "Log out",
+    "register": "Register",
+    "login": "Log in",
+    "forgot": "Forgot password",
+    "reset": "Set new password",
+    "email": "Email",
+    "password": "Password",
+    "confirmation": "Confirm password",
+    "accept": "I accept",
+    "terms": "Local draft terms",
+    "passwordHint": "12 to 1024 characters. Long passphrases are welcome.",
+    "resetSent": "If an active password account exists, we will send a reset link. Check local Mailpit.",
+    "resetDone": "Your password has changed. Log in again.",
+    "draftWarning": "Draft for local testing only — not ready for public launch.",
+    "draftText": "Your account is for testing Travel Buddy. Use test data. Do not publish other people’s data or unlawful content. We store a password hash; sessions last up to 7 days.",
+    "draftMissing": "Before public launch, add administrator and contact details, deletion and complaints rules, and obtain legal review.",
+    "errors": {
+      "VALIDATION_FAILED": "Check your input.",
+      "PASSWORD_MISMATCH": "Passwords must match.",
+      "EMAIL_UNAVAILABLE": "This email cannot be used.",
+      "INVALID_CREDENTIALS": "Invalid email or password.",
+      "UNAUTHENTICATED": "Please log in again.",
+      "CSRF_INVALID": "Refresh the page and try again.",
+      "ORIGIN_REJECTED": "Request origin is not allowed.",
+      "RATE_LIMITED": "Too many attempts. Try again later.",
+      "RESET_INVALID": "The link is invalid, expired or already used.",
+      "UNKNOWN": "The request failed. Please try again."
+    }
+  }
+}
