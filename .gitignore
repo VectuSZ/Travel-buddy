@@ -1,0 +1,24 @@
+# macOS i IDE
+.DS_Store
+.idea/
+
+# Lokalne sekrety i konfiguracja
+.env
+.env.*
+!.env.example
+!.env.*.example
+
+# Java
+**/target/
+
+# Node / Nuxt
+**/node_modules/
+**/.nuxt/
+**/.output/
+**/dist/
+**/coverage/
+
+# Testy i logi
+**/playwright-report/
+**/test-results/
+*.log
