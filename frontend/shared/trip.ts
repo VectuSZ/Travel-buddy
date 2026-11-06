@@ -1,0 +1,1 @@
+export interface Trip { id:string; title:string; country:string; description:string; startDate:string; endDate:string; contentLanguage:string }
