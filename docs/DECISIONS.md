@@ -83,3 +83,71 @@
 - https://quarkus.io/guides/mailer-reference/
 - https://github.com/Password4j/password4j
 - https://github.com/axllent/mailpit
+
+# Decyzje — etap 2B (2026-11-11)
+
+- quarkus-oidc z istniejącego BOM 3.40.1 obsługuje Authorization Code Flow.
+  Jawnie wymagamy nonce i PKCE S256 oraz weryfikujemy issuer Google,
+  audience/client ID i ważność ID tokenu. Podpis sprawdza biblioteka przez
+  JWKS. Zakresy: openid, email, profile; bez dodatkowych Google API.
+- Migracja V4 dodaje auth_identities z UNIQUE(issuer, subject),
+  UNIQUE(user_id, provider) i FK ON DELETE CASCADE. Nie modyfikuje kont
+  lokalnych ani wypraw. Adres e-mail nie służy do wiązania tożsamości.
+- POST google/start wymaga istniejącej ochrony CSRF/Origin. Ma dwa tryby:
+  register wymaga local-draft-1 i akceptacji, login nie daje zgody na
+  utworzenie nowego konta. Język, wersja i czas akceptacji są zapamiętane
+  w zaufanym magazynie po stronie serwera, nigdy odczytywane z callbacku.
+- GoogleAttempts przechowuje maksymalnie 1000 prób, przez 10 minut,
+  w pamięci pojedynczego procesu. Zapamiętuje hash losowego powiązania
+  z HttpOnly cookie, język, zgodę i state wygenerowany przez Quarkusa.
+  Usuwa stare wpisy co minutę oraz przed operacjami. Restart unieważnia
+  rozpoczęte przepływy, nie istniejące sesje aplikacji.
+- OidcRedirectFilter wiąże wygenerowany state z próbą; jest jawnie
+  Unremovable (inaczej optymalizacja CDI usuwała filtr). Callback musi
+  przejść weryfikację Quarkusa i mieć zgodne powiązanie cookie/state.
+  Najnowszy start w tej samej przeglądarce zastępuje cookie wcześniejszej
+  próby; stary callback jest odrzucany, zamiast korzystać z nowej zgody.
+- Nie utrzymujemy sesji OIDC. Własny TokenStateManager odrzuca ID/access/
+  refresh tokeny i zwraca wyłącznie stały, nieautoryzujący placeholder.
+  Quarkus weryfikuje callback w tym samym żądaniu, bez dodatkowego redirectu
+  usuwającego parametry. Endpoint usuwa cookie q_session i tworzy zwykłą
+  sesję przez SessionService. Tokeny Google nie trafiają do bazy,
+  localStorage ani odpowiedzi dla frontendu.
+- Callback i ścieżka błędu są pod origin frontendu. Nitro zachowuje query
+  (code/state), Cookie, wszystkie Set-Cookie i Location. Fetch w proxy ma
+  redirect: manual — przekierowanie do Google ma wykonać przeglądarka.
+  Test check-google-proxy.mjs potwierdza te właściwości na zbudowanym Nuxt.
+- Cel sukcesu jest stały: /account albo /en/account. returnUrl w body lub
+  query startu jest odrzucany. Wynik błędu zawiera wyłącznie kod z aplikacji;
+  UI nie renderuje surowych parametrów dostawcy. Filtr HTTP dodaje no-store
+  również dla błędów uwierzytelniania powstających przed REST i przekierowuje
+  je do stałej strony błędu. Anulowanie ma osobny komunikat.
+- Istniejąca tożsamość zawsze wskazuje dotychczasowe konto, nawet gdy Google
+  zmieni e-mail. Nowa wymaga email_verified=true, akceptacji i wolnego e-maila.
+  Konflikt nigdy nie łączy kont, nie zmienia hasła ani tożsamości. Konta
+  BLOCKED/DELETION_PENDING nie dostają sesji. Konto Google ma NULL hasła.
+- Transakcja obejmuje konto, tożsamość i sesję. PostgreSQL advisory lock
+  na issuer+subject szereguje równoległe tworzenie tej samej tożsamości;
+  indeksy UNIQUE pozostają ostatecznym zabezpieczeniem także konfliktów
+  między różnymi subject i rejestracją hasłem.
+- Google jest domyślnie wyłączone; nie są potrzebne credentials ani
+  połączenie z Google, aby uruchomić konta lokalne. GET google/config steruje
+  widocznością przycisków. Nie zmieniamy TLS, certyfikatów ani CORS.
+- Logi io.quarkus.oidc są wyłączone, aby błędy dostawcy nie ujawniły tokenów
+  ani parametrów callbacku. Wyłączono też komunikaty błędów SQL Hibernate,
+  które przy konflikcie UNIQUE mogłyby zawierać subject. Publiczne błędy
+  pozostają kodami aplikacji. HTTP access log nie jest włączony.
+- OidcProvider w testach udostępnia lokalne discovery, JWKS i token endpoint.
+  Wydaje podpisane tokeny testowe, sprawdza PKCE i nie wymaga Google.
+  Testujemy działającą integrację Quarkusa, a nie własną walidację podpisów.
+  Prawdziwy Google wymaga ręcznego sprawdzenia przez właściciela credentials.
+
+Źródła:
+- https://quarkus.io/version/3.40/guides/security-oidc-code-flow-authentication/
+- https://developers.google.com/identity/openid-connect/openid-connect
+- https://developers.google.com/identity/protocols/oauth2/web-server
+
+Weryfikacja: 29 testów backendu (9 OIDC) oraz 2 E2E PL/EN zaliczone;
+proxy OIDC, typecheck/build i 4 ścieżki SSR również zaliczone. Brak
+credentials oznacza, że nie potwierdzono prawdziwego logowania Google.
+Start Google jest ograniczony do 10 prób na 15 minut na adres proxy/IP.

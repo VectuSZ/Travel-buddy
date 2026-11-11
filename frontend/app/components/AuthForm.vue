@@ -7,6 +7,7 @@ const email = ref('')
 const password = ref('')
 const confirmation = ref('')
 const accepted = ref(false)
+const googleEnabled = ref(false)
 const busy = ref(false)
 const hydrated = ref(false)
 const done = ref(false)
@@ -15,11 +16,20 @@ let token = ''
 const newPassword = computed(() => props.mode === 'register' || props.mode === 'reset')
 onMounted(() => {
   hydrated.value = true
+  if (props.mode === 'login' || props.mode === 'register') $fetch<{ enabled: boolean }>('/api/v1/auth/google/config').then(c => { googleEnabled.value = c.enabled }).catch(() => {})
   if (props.mode === 'reset') {
     token = new URLSearchParams(window.location.hash.slice(1)).get('token') || ''
     window.history.replaceState(null, '', window.location.pathname)
   }
 })
+async function google() {
+  busy.value = true
+  errorCode.value = ''
+  try {
+    const result = await post('google/start', { mode: props.mode, locale: locale.value, acceptTerms: accepted.value, termsVersion: 'local-draft-1' }) as { url: string }
+    window.location.assign(result.url)
+  } catch { errorCode.value = 'UNKNOWN'; busy.value = false }
+}
 async function submit() {
   errorCode.value = ''
   if (newPassword.value && password.value !== confirmation.value) { errorCode.value = 'PASSWORD_MISMATCH'; return }
@@ -51,6 +61,7 @@ async function submit() {
     <label v-if="mode === 'register'" class="checkbox"><input v-model="accepted" type="checkbox" required> {{ t('auth.accept') }} <NuxtLink :to="localePath('/terms')" target="_blank">{{ t('auth.terms') }}</NuxtLink> (local-draft-1)</label>
     <p v-if="errorCode" role="alert">{{ t('auth.errors.' + errorCode) }}</p>
     <button type="submit" :disabled="busy">{{ busy ? t('loading') : t('auth.' + mode) }}</button>
+    <button v-if="googleEnabled" type="button" :disabled="busy || (mode === 'register' && !accepted)" @click="google">{{ t('google.continue') }}</button>
   </fieldset></form>
   <p v-if="mode === 'login'"><NuxtLink :to="localePath('/forgot-password')">{{ t('auth.forgot') }}</NuxtLink></p>
 </template>

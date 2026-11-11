@@ -8,6 +8,8 @@ for (const lang of ['pl', 'en']) {
     const changed = 'Changed local password 456!'
     const submit = () => page.locator('main button[type=submit]')
     await page.goto(prefix + '/register')
+    expect((await (await page.request.get('/api/v1/auth/google/config')).json()).enabled).toBe(false)
+    await expect(page.getByRole('button', { name: /Google/ })).toHaveCount(0)
     await page.locator('input[name=email]').fill(email)
     await page.locator('input[name=password]').fill(password)
     await page.locator('input[name=confirmation]').fill(password)

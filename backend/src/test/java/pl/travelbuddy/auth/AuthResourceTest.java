@@ -226,4 +226,11 @@ class AuthResourceTest {
         session(valid,200);
     }
 
+    @Test void disabledGoogleNeedsNoCredentials() {
+        given().get("/api/v1/auth/google/config").then().statusCode(200).body("enabled",is(false));
+        request(null).body(Map.of("mode","login","locale","pl")).post("/api/v1/auth/google/start")
+            .then().statusCode(503).body("code",is("GOOGLE_DISABLED"));
+        String token=register(); session(token,200);
+    }
+
 }

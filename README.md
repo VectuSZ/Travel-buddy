@@ -237,3 +237,127 @@ PostgreSQL i Mailpit bez usuwania wolumenu danych.
   w przeglądarce. Secure/__Host- są skonfigurowane dla profilu produkcyjnego,
   ale lokalne E2E celowo korzysta z HTTP. Nie wykonano wizualnego przeglądu
   na fizycznym telefonie ani testów innych silników niż Chromium.
+
+# Etap 2B — Google OIDC (opcjonalne)
+
+Bez konfiguracji Google aplikacja działa jak wcześniej, a przycisk Google
+jest ukryty. Nie trzeba tworzyć projektu w Google, aby uruchomić testy.
+Account linking i odłączanie metod logowania nie są zaimplementowane.
+
+## Konfiguracja przez właściciela konta Google
+
+1. Otwórz https://console.cloud.google.com/ i utwórz lub wybierz projekt.
+2. Otwórz **Google Auth Platform** (w niektórych widokach: APIs & Services →
+   OAuth consent screen). W Branding podaj nazwę aplikacji oraz wymagane
+   adresy kontaktowe. W Audience wybierz External, pozostaw status Testing
+   i dodaj swój adres do Test users. Nie publikuj aplikacji.
+3. W Data Access wybierz wyłącznie dane tożsamości: openid, email i profile.
+   Nie włączaj dodatkowych Google API.
+4. W Clients utwórz OAuth Client ID typu **Web application**.
+   Dodaj Authorized redirect URI dokładnie:
+   `http://localhost:3000/api/v1/auth/google/callback`.
+   Nie używamy SDK Google w przeglądarce; Authorized JavaScript origins
+   nie jest potrzebne do tego serwerowego przepływu.
+5. Skopiuj Client ID i Client secret do lokalnego, ignorowanego `.env`:
+
+```dotenv
+GOOGLE_OIDC_ENABLED=true
+GOOGLE_OIDC_CLIENT_ID=tu_wstaw_client_id
+GOOGLE_OIDC_CLIENT_SECRET=tu_wstaw_client_secret
+GOOGLE_OIDC_REDIRECT_URI=http://localhost:3000/api/v1/auth/google/callback
+```
+
+6. Zrestartuj backend przez Ctrl+C, a następnie:
+
+```sh
+./scripts/backend.sh quarkus:dev
+```
+
+7. Uruchom frontend przez `npm run dev` i korzystaj z
+   **http://localhost:3000**. Nie zamieniaj tego adresu na 127.0.0.1.
+   Google musi mieć identyczny redirect URI, łącznie z portem i ścieżką.
+
+Opis konfiguracji Google: https://developers.google.com/identity/openid-connect/openid-connect.
+Nie wpisuj sekretu do repozytorium ani nie przesyłaj go w rozmowie.
+Aby wyłączyć integrację, ustaw GOOGLE_OIDC_ENABLED=false i zrestartuj backend.
+
+## Ręczny test prawdziwego Google — do wykonania po konfiguracji
+
+- Rejestracja: zaakceptuj regulamin roboczy i wybierz „Kontynuuj z Google”.
+  Bez akceptacji przycisk jest nieaktywny. Nie trzeba wypełniać pól hasła.
+- Użyj konta testowego Google z adresem, którego jeszcze nie ma w aplikacji.
+  Po powrocie powinien otworzyć się ekran konta z własnym e-mailem.
+- Wyloguj się. Na ekranie logowania użyj Google ponownie; konto powinno
+  pozostać to samo, bez ponownej akceptacji i bez nowej rejestracji.
+- Sprawdź PL i EN. Język oraz zgoda pochodzą z zapamiętanego startu,
+  a nie z parametrów callbacku.
+- Anuluj wybór/zgodę Google, jeżeli dostawca pokazuje taką opcję: aplikacja
+  powinna pokazać komunikat anulowania. Zamknięcie karty Google nie wysyła
+  callbacku; można wtedy wrócić i rozpocząć nową próbę.
+- Dla nowej tożsamości rozpoczętej z ekranu logowania powinno pojawić się
+  skierowanie do rejestracji, zamiast utworzenia konta bez zgody.
+- Użyj innego konta Google, którego e-mail wcześniej zarejestrujesz hasłem:
+  powinien pojawić się konflikt, a logowanie dotychczasowym hasłem nadal
+  działać. Nie testuj tego, kasując istniejące dane lub wolumen.
+- W Network sprawdź callback przez localhost:3000 oraz końcowe przekierowanie
+  do /account lub /en/account. Po zakończeniu działa cookie session;
+  nie powinno być aktywnego q_session ani tokenów Google w localStorage.
+- Publiczne wyprawy, reset hasła kont lokalnych i przełącznik języka nadal
+  powinny działać. Dla kont wyłącznie Google reset hasła nie tworzy hasła.
+
+Przy błędzie sprawdź status Testing/Test users, typ klienta Web application,
+Client ID/secret i dokładny redirect URI. Nie włączaj logowania pełnych
+odpowiedzi OIDC. Błąd konfiguracji na ekranie samego Google (np. niezgodny
+redirect URI) może wymagać poprawki w Console, zanim Google pozwoli wrócić.
+
+## API i testy Google
+
+| Endpoint | Działanie |
+| --- | --- |
+| GET /api/v1/auth/google/config | Czy przycisk Google jest włączony |
+| POST /api/v1/auth/google/start | JSON mode: login/register, locale: pl/en, acceptTerms, termsVersion; wymaga CSRF i Origin |
+| GET /api/v1/auth/google/authorize | Przekierowanie do dostawcy dla wcześniej rozpoczętej próby |
+| GET /api/v1/auth/google/callback | Callback obsługiwany i weryfikowany przez Quarkus OIDC |
+| GET /api/v1/auth/google/error | Bezpieczne mapowanie błędu/anulowania |
+
+Start zwraca wyłącznie wewnętrzną ścieżkę w polu url. Nie obsługuje dowolnego
+returnUrl. Próba ważna jest 10 minut; najnowszy start w tej samej przeglądarce
+zastępuje wcześniejsze powiązanie. Restart backendu unieważnia rozpoczęte
+próby, ale nie utworzone już sesje aplikacji. Magazyn prób jest lokalny,
+ograniczony i sprzątany; nie jest rozwiązaniem dla wielu instancji.
+
+Testy backendu używają kontrolowanego serwera OIDC z podpisanymi tokenami
+oraz PostgreSQL. Nie potrzebują kont Google ani prawdziwego client secret:
+
+```sh
+./scripts/backend.sh test
+```
+
+Testy proxy (po buildzie frontendu; skrypt sam uruchamia izolowany Nuxt
+na wolnym porcie i lokalny serwer testowy, po czym je zatrzymuje):
+
+```sh
+cd frontend
+npm run typecheck
+npm run build
+cd ..
+node scripts/check-google-proxy.mjs
+```
+
+Dotychczasowe `npm run test:e2e` uruchamiaj z GOOGLE_OIDC_ENABLED=false;
+sprawdza również ukrycie przycisku Google. Uruchom potem
+`node scripts/check-ssr.mjs` z katalogu głównego. Testy protokołu Google
+nie zastępują powyższej ręcznej checklisty prawdziwego dostawcy.
+
+## Wyniki weryfikacji etapu 2B (2026-11-11)
+
+- 29 testów backendu: zaliczone, w tym 9 scenariuszy OIDC z kontrolowanym
+  dostawcą, PostgreSQL i rzeczywistą weryfikacją tokenów przez Quarkusa.
+- Dotychczasowe E2E PL/EN z Mailpit: 2/2 zaliczone; Google wyłączone,
+  przycisk ukryty, logowanie hasłem i reset nadal działają.
+- Typecheck, build Nuxta i test proxy OIDC: zaliczone.
+- Publiczna lista i szczegóły SSR w PL/EN: 4/4 zaliczone.
+- Prawdziwe logowanie Google NIE było wykonywane. Właściciel musi
+  skonfigurować klienta w Console i wykonać checklistę powyżej.
+- Nie sprawdzano publicznego HTTPS ani wdrożenia. Próby OIDC w pamięci
+  wymagają pojedynczego backendu i rozpoczęcia od nowa po jego restarcie.

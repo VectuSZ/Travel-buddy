@@ -38,5 +38,20 @@
       "RESET_INVALID": "The link is invalid, expired or already used.",
       "UNKNOWN": "The request failed. Please try again."
     }
+  },
+  "google": {
+    "continue": "Continue with Google",
+    "result": "Google sign-in",
+    "errors": {
+      "GOOGLE_CANCELLED": "Sign-in cancelled.",
+      "GOOGLE_FAILED": "Google sign-in failed. Try again; if it persists, check the integration configuration.",
+      "GOOGLE_DISABLED": "Google sign-in is disabled.",
+      "GOOGLE_EMAIL_UNVERIFIED": "Google has not verified your email address.",
+      "GOOGLE_ACCOUNT_BLOCKED": "This account is inactive.",
+      "GOOGLE_EMAIL_CONFLICT": "An account with this email already exists. Use your previous sign-in method or reset your password. No accounts were linked.",
+      "GOOGLE_REGISTRATION_REQUIRED": "Go to registration and accept the terms first.",
+      "GOOGLE_FLOW_INVALID": "This sign-in attempt expired or was replaced. Start again.",
+      "GOOGLE_TERMS_REQUIRED": "Accept the current terms."
+    }
   }
 }

@@ -38,5 +38,20 @@
       "RESET_INVALID": "Link jest nieprawidłowy, wygasł lub został już użyty.",
       "UNKNOWN": "Nie udało się wykonać operacji. Spróbuj ponownie."
     }
+  },
+  "google": {
+    "continue": "Kontynuuj z Google",
+    "result": "Logowanie Google",
+    "errors": {
+      "GOOGLE_CANCELLED": "Logowanie anulowane.",
+      "GOOGLE_FAILED": "Nie udało się zalogować przez Google. Spróbuj ponownie; jeśli błąd się powtarza, sprawdź konfigurację integracji.",
+      "GOOGLE_DISABLED": "Logowanie Google jest wyłączone.",
+      "GOOGLE_EMAIL_UNVERIFIED": "Google nie potwierdziło adresu e-mail.",
+      "GOOGLE_ACCOUNT_BLOCKED": "To konto jest nieaktywne.",
+      "GOOGLE_EMAIL_CONFLICT": "Konto z tym adresem już istnieje. Zaloguj się dotychczasową metodą lub odzyskaj hasło. Konta nie zostały połączone.",
+      "GOOGLE_REGISTRATION_REQUIRED": "Najpierw przejdź do rejestracji i zaakceptuj regulamin.",
+      "GOOGLE_FLOW_INVALID": "Próba logowania wygasła lub została zastąpiona. Rozpocznij ponownie.",
+      "GOOGLE_TERMS_REQUIRED": "Zaakceptuj aktualny regulamin."
+    }
   }
 }
