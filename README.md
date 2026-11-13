@@ -361,3 +361,111 @@ nie zastępują powyższej ręcznej checklisty prawdziwego dostawcy.
   skonfigurować klienta w Console i wykonać checklistę powyżej.
 - Nie sprawdzano publicznego HTTPS ani wdrożenia. Próby OIDC w pamięci
   wymagają pojedynczego backendu i rozpoczęcia od nowa po jego restarcie.
+
+## Etap 3 — profil podróżnika i prywatne kontakty
+
+Ekran `/account` (EN: `/en/account`) zawiera dwa niezależne formularze.
+Nowe konto nie ma profilu, wieku ani kontaktów. Profil publiczny wymaga
+nazwy, wieku 18–120, co najmniej jednego języka (maks. 10) i stylu.
+Bio jest opcjonalne. Kontakty można zapisać osobno i wszystkie usunąć.
+Nie są udostępniane innym użytkownikom na tym etapie.
+
+API: `GET /api/v1/me`, `PATCH /api/v1/me/profile`,
+`PUT /api/v1/me/contacts`, `GET /api/v1/profiles/{userId}`.
+[OpenAPI nowych endpointów](docs/openapi-profiles.yaml) opisuje payloady,
+wersjonowanie i błędy. Przeglądarka korzysta z istniejącego proxy Nuxta,
+sesji i tokenu CSRF uzyskanego z `/api/v1/auth/csrf`. Dane prywatne są
+pobierane tylko po stronie klienta, z `Cache-Control: private, no-store`.
+Publiczny profil ma tylko publiczne DTO, SSR, `noindex` i brak sitemap.
+
+### Ręczna weryfikacja na dwóch kontach
+
+1. Uruchom Compose, backend i frontend poleceniami z początku README.
+   Flyway zastosuje V5 bez usuwania dotychczasowych danych.
+2. Zarejestruj konto A. W `/account` sprawdź pusty profil i kontakty.
+   Wpisz nazwę, wiek, język np. niemiecki i styl; zapisz i odśwież.
+   Wpisane dane powinny pozostać, a komunikat wskazywać brak kontaktu.
+3. Zapisz e-mail kontaktowy **inny niż e-mail logowania**, Instagram
+   `@test_name` i WhatsApp `+48123456789`. Odśwież stronę. Znak @ ma
+   zostać usunięty, a komunikat wskazywać gotowość do przyszłego udziału.
+   Numer jest sprawdzany tylko pod względem formatu.
+4. Otwórz konto w dwóch kartach. Zapisz bio w pierwszej, potem w drugiej.
+   Druga pokaże konflikt 409 i zachowa szkic. Dopiero kliknięcie ponownego
+   pobrania ma wczytać aktualny profil.
+5. Skopiuj link „Zobacz profil publiczny”. Otwórz go w oknie prywatnym,
+   a potem zaloguj tam konto B i otwórz ten sam link. W obu przypadkach
+   widoczne są tylko nazwa, wiek, bio, języki i style konta A.
+   Konto B w swoim `/account` nadal widzi własne dane.
+6. Sprawdź źródło HTML strony profilu (wraz z osadzonym payloadem Nuxta)
+   i JSON `/api/v1/profiles/{id}`. Nie mogą zawierać e-maila logowania A,
+   kontaktowego A, Instagramu, numeru ani danych sesji. JSON ma dokładnie
+   sześć pól opisanych w OpenAPI. HTML ma `noindex`.
+7. Przełącz PL/EN. Sprawdź nazwy języków i stylów. Spróbuj wieku 17,
+   braku języków oraz Instagramu jako URL — zapis ma zostać odrzucony,
+   a wpisane dane zachowane. Bez sesji `/api/v1/me` zwraca 401.
+8. Na koncie A wyczyść wszystkie kontakty, zapisz i odśwież. Profil
+   pozostaje, a gotowość znów wskazuje brak kontaktu. Przeglądanie wypraw
+   przez cały czas działa bez uzupełniania profilu.
+
+### Sprawdzenia automatyczne etapu 3
+
+Najpierw testy backendu (PostgreSQL uruchomiony; zatrzymaj dev backend,
+aby Maven test nie przebudowywał klas używanych przez hot reload):
+
+```sh
+./scripts/backend.sh test
+```
+
+Testy używają osobnego schematu PostgreSQL i kontrolowanego dostawcy
+OIDC. Nie wymagają prawdziwego konta Google. Następnie uruchom backend
+na potrzeby E2E z jawnym wyłączeniem Google, bez zmiany prywatnego `.env`:
+
+```sh
+./scripts/backend.sh quarkus:dev -Dauth.google.enabled=false -Dquarkus.oidc.tenant-enabled=false
+```
+
+W drugim terminalu:
+
+```sh
+cd frontend
+npm run typecheck
+npm run build
+npm run dev
+```
+
+W trzecim terminalu (PostgreSQL i Mailpit nadal uruchomione):
+
+```sh
+cd frontend
+npm run test:e2e
+cd ..
+node scripts/check-ssr.mjs
+node scripts/check-google-proxy.mjs
+```
+
+E2E tworzą cztery lokalne konta testowe i wiadomości Mailpit. Pozostają
+w developerskiej bazie; testy nie usuwają kont użytkownika ani wolumenów.
+Przed powtórzeniem całego zestawu zrestartuj backend, aby wyzerować
+lokalny limiter w pamięci (5 rejestracji/IP/godzinę). Po testach zatrzymaj
+frontend i backend przez Ctrl+C. Powrót do normalnej konfiguracji Google:
+uruchom `./scripts/backend.sh quarkus:dev` bez nadpisań `-D`.
+
+### Wyniki etapu 3 (2026-11-13)
+
+Etap 3 jest zaimplementowany i zweryfikowany lokalnie:
+
+- Backend: **35/35** testów na PostgreSQL 17.6, w tym 6 testów profili,
+  regresja kont/sesji/resetu, 9 testów kontrolowanego OIDC i publiczne wyprawy.
+- Frontend: `npm run typecheck` i `npm run build` zakończone powodzeniem.
+- Playwright: **3/3** na zbudowanym Nuxtcie — dotychczasowe auth/reset PL/EN,
+  profil i kontakty, odświeżenie, usuwanie, walidacja, konflikt 409 bez
+  utraty szkicu, dwa konta, anonimowy profil, przełącznik języka i brak
+  prywatnych danych w publicznym HTML/payloadzie oraz ścisła lista pól API.
+- SSR wypraw: **4/4** (lista i szczegóły PL/EN).
+- Proxy Google: przekierowania, query, Cookie, Set-Cookie, Origin i no-store
+  sprawdzone pomyślnie. `git diff --check` bez błędów.
+
+Prawdziwe logowanie Google nie było ponawiane w etapie 3; regresję OIDC
+sprawdzono kontrolowanym dostawcą. Nie wykonywano wdrożenia ani testów
+publicznego HTTPS. Kontakty pozostają nieweryfikowane i dostępne wyłącznie
+właścicielowi. Udostępnianie ich w ramach wypraw należy do przyszłych etapów.

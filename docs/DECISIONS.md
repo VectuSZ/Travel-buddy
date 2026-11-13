@@ -151,3 +151,52 @@ Weryfikacja: 29 testów backendu (9 OIDC) oraz 2 E2E PL/EN zaliczone;
 proxy OIDC, typecheck/build i 4 ścieżki SSR również zaliczone. Brak
 credentials oznacza, że nie potwierdzono prawdziwego logowania Google.
 Start Google jest ograniczony do 10 prób na 15 minut na adres proxy/IP.
+
+## Etap 3 — profil i prywatne kontakty (2026-11-13)
+
+- Migracja V5 dodaje dwie tabele 1:1 z users i ON DELETE CASCADE. Konto
+  może nie mieć profilu ani kontaktów; brak fikcyjnych danych i kopiowania
+  e-maila logowania. Dotychczasowe migracje i dane pozostają zachowane.
+- PublicProfile to osobne DTO z dokładnie sześcioma polami: userId,
+  displayName, age, bio, languages, travelStyles. OwnProfile zawiera też
+  ageUpdatedAt i version. Me zawiera własny e-mail i kontakty. Encje nie
+  są serializowane. Nieaktywne konto ma publiczne 404 i prywatne 401.
+- PATCH stosuje jawną listę pól i rozróżnia brak od null. Pierwszy zapis
+  wymaga nazwy 2–60 znaków po strip, wieku 18–120, języków i stylów.
+  Bio do 1000 znaków można usunąć przez null/pusty tekst. Teksty nie
+  dopuszczają znaków < ani >; interfejs renderuje tekst bez v-html.
+- Wiek jest deklarowany, bez daty urodzenia. age_updated_at to data UTC
+  serwera przy pierwszym zapisie lub zmianie wartości wieku. Zapis tego
+  samego wieku albo samego bio nie odświeża daty.
+- Lokalny słownik 22 języków: pl, en, de, fr, es, it, pt, uk, cs, sk, nl,
+  sv, no, da, fi, el, tr, ar, zh, ja, ko, hi. Maksymalnie 10 unikalnych.
+  Style: backpacking, comfort, trekking, city_break. Słowniki backendu
+  i frontend/shared/profile.ts używają tych samych kodów; etykiety PL/EN
+  są w i18n/locales. Bez API zewnętrznego. Tablice wejściowe do 32 pozycji,
+  duplikaty usuwane z zachowaniem kolejności, nieznane kody odrzucane.
+- profileComplete oznacza istnienie poprawnie zapisanego profilu;
+  hasContact co najmniej jeden kontakt; readyToParticipate jest ich
+  koniunkcją. Flagi wyliczamy, nie zapisujemy. Nie blokują przeglądania.
+- Kontakty zastępuje PUT: brak pola, null i pusty tekst usuwają wartość.
+  E-mail jest niezależny, przycinany i walidowany przez Bean Validation.
+  Instagram to 1–30 znaków ASCII (litery, cyfry, kropka, podkreślenie),
+  opcjonalne pojedyncze początkowe @ usuwamy. WhatsApp: + i 2–15 cyfr,
+  pierwsza niezerowa. To jedynie sprawdzenie formatu, bez weryfikacji.
+- Wersja 0 oznacza utworzenie; pierwszy zapis zwraca 1. Kolejne wymagają
+  aktualnej wersji i korzystają z Hibernate @Version. Krótka blokada
+  wiersza właściciela serializuje również równoległe tworzenie profilu
+  i kontaktów; nie zastępuje sprawdzenia wersji. Stare żądanie dostaje
+  409 PROFILE_VERSION_CONFLICT. UI zachowuje szkic do jawnego przeładowania.
+- Właściciel pochodzi wyłącznie z aktywnej sesji. Zapis korzysta z istniejącego
+  CSRF oraz kontroli Origin, przez ten sam proxy Nuxta. Nieznane pola
+  (w tym userId/role/status/email) są odrzucane. Kontakty nie mają publicznego API.
+- Prywatny edytor działa dopiero po mounted w ClientOnly. Brak danych konta
+  w SSR/hydratacji. Publiczny profil SSR ma tylko publiczne DTO, noindex,
+  bez katalogu i sitemap. API profili, /me oraz strony profili mają
+  Cache-Control: private, no-store, także na odpowiedziach błędów API.
+- Specyfikacja nowych endpointów: docs/openapi-profiles.yaml (OpenAPI 3.0.3).
+  Dotychczas projekt nie udostępniał generatora OpenAPI; specyfikacja jest
+  utrzymywana w repozytorium bez dodawania zależności runtime.
+- Testy zwykłego auth wymuszają wyłączenie Google w profilu test, niezależnie
+  od lokalnego .env. Osobny kontrolowany dostawca OIDC włącza integrację
+  tylko na czas swoich testów. Nie wymaga prawdziwych credentials.

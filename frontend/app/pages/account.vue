@@ -13,4 +13,4 @@ async function signOut() {
 }
 useHead({ title: () => t('auth.account'), meta: [{ name: 'robots', content: 'noindex' }] })
 </script>
-<template><h1>{{ t('auth.account') }}</h1><ClientOnly><p v-if="error" role="alert">{{ t('error') }}</p><template v-if="account"><p>{{ account.email }}</p><button @click="signOut">{{ t('auth.logout') }}</button></template><p v-else-if="!ready">{{ t('loading') }}</p></ClientOnly></template>
+<template><h1>{{ t('auth.account') }}</h1><ClientOnly><p v-if="error" role="alert">{{ t('error') }}</p><template v-if="account"><p>{{ account.email }}</p><button data-testid="logout" @click="signOut">{{ t('auth.logout') }}</button><ProfileEditor /></template><p v-else-if="!ready">{{ t('loading') }}</p></ClientOnly></template>

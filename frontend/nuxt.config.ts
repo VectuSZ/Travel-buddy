@@ -2,6 +2,8 @@ export default defineNuxtConfig({
  compatibilityDate: '2026-11-06',
  modules: ['@nuxtjs/i18n'],
  routeRules: {
+   '/profiles/**': { headers: { 'Cache-Control': 'private, no-store' } },
+   '/en/profiles/**': { headers: { 'Cache-Control': 'private, no-store' } },
    '/google-result': { headers: { 'Cache-Control': 'no-store', 'Referrer-Policy': 'no-referrer' } },
    '/en/google-result': { headers: { 'Cache-Control': 'no-store', 'Referrer-Policy': 'no-referrer' } },
    '/reset-password': { headers: { 'Referrer-Policy': 'no-referrer', 'Cache-Control': 'no-store' } },

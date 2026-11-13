@@ -32,7 +32,7 @@ for (const lang of ['pl', 'en']) {
     expect(await privateResponse.json()).toEqual({ email })
     expect(await page.evaluate(() => Object.keys(localStorage))).not.toContain('session')
 
-    await page.locator('main button').click()
+    await page.getByTestId('logout').click()
     await expect(page).toHaveURL(new RegExp(prefix + '/login$'))
     expect((await context.cookies()).some(cookie => cookie.name === 'session')).toBe(false)
     await page.locator('input[name=email]').fill(email.toUpperCase())
@@ -74,6 +74,6 @@ for (const lang of ['pl', 'en']) {
     await page.locator('input[name=password]').fill(changed)
     await submit().click()
     await expect(page).toHaveURL(new RegExp(prefix + '/account$'))
-    await page.locator('main button').click()
+    await page.getByTestId('logout').click()
   })
 }

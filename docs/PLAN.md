@@ -9,7 +9,7 @@ Docelowe miejsce w repozytorium: `docs/PLAN.md`.
 **Najpierw budujemy i testujemy produkt wyłącznie lokalnie na macOS. Wdrożenie nastąpi dopiero, gdy produkt będzie użyteczny.**
 
 - Setup narzędzi i lokalnego repozytorium został wykonany przez autora. Nie zakładaj, że istnieje już kod aplikacji — sprawdź repozytorium.
-- Obecny następny krok to **etap 1: pionowy szkielet end-to-end**.
+- Etapy 1, 2A i 2B są zaimplementowane lokalnie. Etap 3 (profil podróżnika i prywatne kontakty) został zaimplementowany i zweryfikowany lokalnie 2026-11-13; zakres i wyniki weryfikacji znajdują się w README. Kolejne etapy pozostają poniżej jako plan, nie jako wykonane funkcje.
 - Ten dokument opisuje cały kierunek produktu. **Nie jest poleceniem implementacji całego MVP w jednym zadaniu.** Realizuj tylko etap wskazany w aktualnym poleceniu.
 - Instrukcje pracy z kodem znajdują się w głównym `AGENTS.md`.
 - Istotne decyzje i odstępstwa zapisuj w `docs/DECISIONS.md`, a rzeczywiste polecenia uruchamiania w `README.md`.

@@ -41,7 +41,7 @@ public class OidcProvider implements QuarkusTestResourceLifecycleManager {
     } catch(Exception ex) { reply(e,400,Map.of("error","invalid_grant")); }
    });
    server.start();
-   return Map.of("auth.google.enabled","true","quarkus.oidc.tenant-enabled","true","quarkus.oidc.auth-server-url",issuer,
+   return Map.of("%test.auth.google.enabled","true","quarkus.oidc.tenant-enabled","true","quarkus.oidc.auth-server-url",issuer,
     "quarkus.oidc.token.issuer",issuer,"quarkus.oidc.client-id","test-client","quarkus.oidc.token.audience","test-client",
     "quarkus.oidc.credentials.secret","test-only-secret-with-more-than-32-chars",
     "quarkus.oidc.authentication.redirect-path","http://localhost:8081/api/v1/auth/google/callback");
