@@ -608,3 +608,57 @@ Dodatkowy test: cd frontend && npx playwright test tests/search.spec.ts.
 Test cyklu życia trips.spec.ts obejmuje teraz także wyszukanie i SSR.
 Canonical używa lokalnego http://localhost:3000, konfigurowalnego przez
 NUXT_PUBLIC_SITE_URL. Nie jest to konfiguracja wdrożenia.
+
+## Etap 5 — zgłoszenia, uczestnicy i prywatne kontakty
+
+Po zwykłym uruchomieniu backendu Flyway zastosuje V10 bez kasowania
+istniejących danych. Na stronie wyprawy zalogowany użytkownik może wysłać
+wiadomość po potwierdzeniu zasad udostępnienia kontaktów. „Moje zgłoszenia”
+pokazuje własne wiadomości/statusy i wycofanie. Panel zgłoszeń organizatora
+znajduje się pod formularzem edycji w „Moje wyprawy”.
+
+Ręczny odbiór na A, B i C:
+
+1. Uzupełnij profile i prywatne kontakty trzech kont. A publikuje wyprawę
+   z limitem 3 osób (łącznie z A). B wysyła wiadomość ze szczegółów.
+2. A otwiera edycję wyprawy, odczytuje wiadomość, akceptuje po przeczytaniu
+   informacji o publicznym uczestnictwie i wzajemnym kontakcie.
+3. Odśwież szczegóły jako B/anonimowo: lista pokazuje A i B, ale nie
+   wiadomość ani kontakt. A i B wybierają „Pokaż kontakt” w swoim panelu.
+   E-mail logowania nie jest używany jako kontakt.
+4. C zgłasza się, A odrzuca. C widzi Odrzucone w „Moje zgłoszenia” i nie
+   otrzymuje kontaktu. Osobno sprawdź zaakceptowanie C: B nadal nie może
+   uzyskać kontaktu C przez endpoint wyprawy.
+5. B wycofuje zaakceptowane zgłoszenie: znika z listy po odświeżeniu,
+   zwalnia miejsce i traci dostęp do kontaktu A przy następnym odczycie.
+   Kraje, daty i budżet pozostają zablokowane nawet po wycofaniu wszystkich.
+6. Zamknięcie przez A odrzuca oczekujące zgłoszenia, zachowuje zaakceptowanych
+   i ich kontakty. Powtórz PL/EN. Kontakt wyświetlony wcześniej można ukryć
+   przyciskiem; aplikacja nie może odebrać wcześniej skopiowanych danych.
+
+API pod /api/v1:
+POST /trips/{id}/applications (JSON message), GET /me/applications,
+GET /trips/{id}/applications, POST /applications/{id}/accept|reject|withdraw,
+GET /trips/{id}/participants, GET /trips/{id}/contacts/{userId}.
+Zapisy wymagają sesji/CSRF/Origin. Kontakty: private, no-store.
+Błędy m.in. 409 TRIP_FULL, ALREADY_APPLIED, APPLICATION_STATE,
+TRIP_TERMS_LOCKED; 403 CONTACT_FORBIDDEN. Wycofane zgłoszenie nie jest
+ponawiane. Uczestnik nie otrzymuje kontaktów innych uczestników.
+
+Sprawdzenia:
+
+    ./scripts/backend.sh test -Dquarkus.datasource.jdbc.url=jdbc:postgresql://127.0.0.1:5433/travel_buddy_stage4_test_20261114
+    cd frontend
+    npm run typecheck
+    npm run build
+    npx playwright test tests/applications.spec.ts
+
+Test E2E ma warianty PL/EN i tworzy 6 kont. W razie zajętych portów można
+uruchomić osobne procesy (bez zmiany .env), z katalogu głównego:
+
+    ./scripts/backend.sh quarkus:dev -Dquarkus.http.port=8082 -Dauth.frontend-url=http://localhost:3100 -Dauth.rate.register-ip=40 -Dauth.google.enabled=false -Ddebug=false
+    PORT=3100 NUXT_BACKEND_URL=http://127.0.0.1:8082 NUXT_PUBLIC_SITE_URL=http://localhost:3100 node frontend/.output/server/index.mjs
+
+W frontend: E2E_BASE_URL=http://localhost:3100 npx playwright test tests/applications.spec.ts.
+Dane testowe pozostają lokalnie. Nie usuwaj wolumenu. Testy Maven wykonuj
+przed uruchomieniem dev ze względu na wspólny katalog target.

@@ -23,7 +23,7 @@ public class TripService {
   if(current==null || !"ACTIVE".equals(current.status)) throw new AuthProblem(401,"UNAUTHENTICATED");
  }
  Trip own(User u, UUID id) {
-  Trip t=Trip.findById(id);
+  Trip t=Trip.findById(id,LockModeType.PESSIMISTIC_WRITE);
   if(t==null || !u.id.equals(t.organizerId)) throw new AuthProblem(404,"TRIP_NOT_FOUND");
   return t;
  }
@@ -32,7 +32,7 @@ public class TripService {
   return TripView.of(t,p==null?null:profiles.publicProfile(t.organizerId));
  }
  public List<TripView> mine(User u) {return Trip.<Trip>list("organizerId = ?1 order by createdAt desc, id",u.id).stream().map(this::view).toList();}
- public TripView mine(User u,UUID id) {return view(own(u,id));}
+ @Transactional public TripView mine(User u,UUID id) {return view(own(u,id));}
  void version(Trip t,JsonNode n) {
   if(!n.has("version") || !n.get("version").isIntegralNumber() || !n.get("version").canConvertToInt())bad("VERSION");
   if(t.version!=n.get("version").intValue())throw new AuthProblem(409,"TRIP_VERSION_CONFLICT");
@@ -92,7 +92,14 @@ public class TripService {
  }
  @Transactional public TripView patch(User u,UUID id,JsonNode n) {
   lock(u);Trip t=own(u,id);version(t,n);if("CLOSED".equals(t.status))throw new AuthProblem(409,"TRIP_CLOSED");
-  content(t,n);if("OPEN".equals(t.status))complete(t);t.updatedAt=Instant.now();Trip.getEntityManager().flush();return view(t);
+  if(t.firstAcceptedAt!=null){
+   var before=view(t);var oldTarget=t.targetPeople;
+   content(t,n);
+   var after=view(t);
+   if(!java.util.Objects.equals(before.dateMode(),after.dateMode())||!java.util.Objects.equals(before.dateFrom(),after.dateFrom())||!java.util.Objects.equals(before.dateTo(),after.dateTo())||!java.util.Objects.equals(before.durationDays(),after.durationDays())||(after.budgetMin()==null||before.budgetMin().compareTo(after.budgetMin())!=0)||(after.budgetMax()==null||before.budgetMax().compareTo(after.budgetMax())!=0)||!before.locations().stream().map(TripView.Location::countryCode).toList().equals(after.locations().stream().map(TripView.Location::countryCode).toList())||t.targetPeople==null||t.targetPeople<oldTarget)throw new AuthProblem(409,"TRIP_TERMS_LOCKED");
+  }else content(t,n);
+  if(t.targetPeople!=null && t.targetPeople<1+TripApplication.count("tripId = ?1 and status = 'ACCEPTED'",id))throw new AuthProblem(409,"TRIP_FULL");
+  if("OPEN".equals(t.status))complete(t);t.updatedAt=Instant.now();Trip.getEntityManager().flush();return view(t);
  }
  @Transactional public TripView transition(User u,UUID id,JsonNode n,boolean publish) {
   lock(u);fields(n,Set.of("version"));Trip t=own(u,id);version(t,n);
@@ -102,7 +109,7 @@ public class TripService {
    if(!me.profileComplete())bad("PROFILE_REQUIRED");if(!me.hasContact())bad("CONTACT_REQUIRED");complete(t);
    if(Trip.count("organizerId = ?1 and publishedAt >= ?2",u.id,LocalDate.now(ZoneOffset.UTC).atStartOfDay().toInstant(ZoneOffset.UTC))>=perDay || Trip.count("organizerId = ?1 and status = 'OPEN'",u.id)>=maxOpen)throw new AuthProblem(429,"TRIP_PUBLICATION_LIMIT");
    t.status="OPEN";t.publishedAt=Instant.now();
-  } else {t.status="CLOSED";t.closedAt=Instant.now();}
+  } else {t.status="CLOSED";t.closedAt=Instant.now();TripApplication.update("status = 'REJECTED', decidedAt = ?1, updatedAt = ?1 where tripId = ?2 and status = 'PENDING'",t.closedAt,t.id);}
   t.updatedAt=Instant.now();Trip.getEntityManager().flush();return view(t);
  }
 }

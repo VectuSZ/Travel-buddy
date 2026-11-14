@@ -30,6 +30,7 @@ function handle(e:unknown){
  else if(code==='INVALID_CONTACT_REQUIRED')error.value='contact'
  else if(problem.statusCode===429)error.value='limit'
  else if(problem.statusCode===404)error.value='missing'
+ else if(code==='TRIP_TERMS_LOCKED')error.value='termsLocked'
  else if(problem.statusCode===409)error.value='stateConflict'
  else{
   error.value='error'
@@ -132,5 +133,6 @@ onMounted(load)
  </fieldset></form>
  <button v-if="state==='OPEN'" type="button" :disabled="busy" @click="close">{{ t('owner.close') }}</button>
  </template>
+<ClientOnly><ApplicationsPanel v-if="id" :key="id+state" :trip-id="id" organizer /></ClientOnly>
 </template>
 <style scoped>textarea,select{box-sizing:border-box;width:100%;font:inherit;padding:10px}.choice{display:inline-flex;gap:6px;margin:8px}.field-error{display:block;color:#9b2525}.location{padding:12px;border:1px solid #ccc;margin:12px 0}button{margin:6px}small{display:block}</style>

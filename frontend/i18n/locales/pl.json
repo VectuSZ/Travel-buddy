@@ -177,7 +177,8 @@
     "peopleError": "Podaj całkowitą liczbę osób od 2 do 50.",
     "datesError": "Koniec nie może poprzedzać początku.",
     "durationError": "Dodatnia liczba dni musi mieścić się w oknie, licząc oba końce.",
-    "budgetError": "Podaj kwotę od 0 do 99 999 999,99; budżet od nie może przekraczać budżetu do."
+    "budgetError": "Podaj kwotę od 0 do 99 999 999,99; budżet od nie może przekraczać budżetu do.",
+    "termsLocked": "Po pierwszej akceptacji nie można zmienić krajów, dat ani budżetu lub zmniejszyć liczby miejsc."
   },
   "search": {
     "country": "Kraj (kod ISO, np. PT)",
@@ -196,5 +197,37 @@
     "previous": "Poprzednia",
     "next": "Następna",
     "from": "Termin od"
+  },
+  "applications": {
+    "mine": "Moje zgłoszenia",
+    "incoming": "Zgłoszenia do wyprawy",
+    "participants": "Uczestnicy",
+    "notice": "Udział po akceptacji będzie publiczny. Organizator i zaakceptowana osoba zobaczą wzajemnie prywatne kontakty; pozostali uczestnicy nie otrzymają do nich dostępu.",
+    "ack": "Rozumiem zasady udostępniania.",
+    "message": "Wiadomość do organizatora",
+    "apply": "Wyślij zgłoszenie",
+    "accept": "Akceptuj",
+    "reject": "Odrzuć",
+    "withdraw": "Wycofaj zgłoszenie",
+    "contact": "Pokaż kontakt",
+    "hide": "Ukryj kontakt",
+    "PENDING": "Oczekujące",
+    "ACCEPTED": "Zaakceptowane",
+    "REJECTED": "Odrzucone",
+    "WITHDRAWN": "Wycofane",
+    "errors": {
+      "session": "Zaloguj się.",
+      "PROFILE_CONTACT_REQUIRED": "Uzupełnij profil i kontakt.",
+      "TRIP_FULL": "Brak wolnych miejsc.",
+      "ALREADY_APPLIED": "Zgłoszenie już istnieje.",
+      "TRIP_CLOSED": "Wyprawa zamknięta.",
+      "OWN_TRIP": "To Twoja wyprawa.",
+      "CONTACT_FORBIDDEN": "Brak dostępu do kontaktu.",
+      "APPLICATION_STATE": "Stan zgłoszenia zmienił się.",
+      "INVALID_MESSAGE": "Wpisz wiadomość (1–2000 znaków, bez HTML).",
+      "APPLICATION_LIMIT": "Limit zgłoszeń osiągnięty.",
+      "error": "Nie udało się wykonać operacji."
+    },
+    "full": "Brak wolnych miejsc"
   }
 }

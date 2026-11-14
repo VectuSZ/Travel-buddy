@@ -14,4 +14,4 @@ useHead(()=>({title:(data.value?.title||t('trips'))+' — Travel Buddy',link:[{r
 <article v-if="data"><h1 :lang="data.contentLanguage">{{ data.title }}</h1><p>{{ t('owner.'+data.status) }}</p>
 <p>{{ data.locations.map(l=>[l.countryCode,l.city].filter(Boolean).join(' — ')).join(' → ') }}</p>
 <p>{{ data.startDate }} — {{ data.endDate }}</p><p v-if="data.dateMode==='FLEXIBLE'">{{ t('search.flexible') }}</p><p>{{ data.budgetMin }}–{{ data.budgetMax }} PLN · {{ t('search.perPerson') }}</p>
-<p :lang="data.contentLanguage">{{ data.description }}</p></article></template>
+<p :lang="data.contentLanguage">{{ data.description }}</p></article><ParticipantsList v-if="data" :trip-id="data.id" :capacity="data.targetPeople" /><ClientOnly><ApplicationsPanel v-if="data" :trip-id="data.id" :trip-status="data.status" /></ClientOnly></template>

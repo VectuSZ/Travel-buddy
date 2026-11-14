@@ -4,5 +4,5 @@ export default defineConfig({
   workers: 1,
   retries: 0,
   timeout: 45_000,
-  use: { baseURL: 'http://localhost:3000', browserName: 'chromium', trace: 'off' },
+  use: { baseURL: process.env.E2E_BASE_URL || 'http://localhost:3000', browserName: 'chromium', trace: 'off' },
 })

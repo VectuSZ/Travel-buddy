@@ -280,3 +280,25 @@ kolumn umożliwiając niekompletne szkice oraz wdrożyć walidację publikacji.
   autora. Origin canonical: runtimeConfig.public.siteUrl, lokalnie localhost.
 - Stare / i /en nadal udostępniają listę dla zgodności; nowe lokalizowane
   listy są pod /pl/wyprawy i /en/trips. Pełna sitemap i końcowe SEO: etap 7.
+
+## 2026-11-14 — zgłoszenia i kontakty (etap 5)
+
+- V10 dodaje applications z UNIQUE(trip_id,applicant_id). Zgłoszenie
+  można wysłać raz, także po odrzuceniu/wycofaniu nie jest tworzone ponownie.
+  Wiadomość to prywatny plain text, 1–2000 znaków. Limit: 20/dzień UTC.
+- Wszystkie zmiany zgłoszenia blokują rekord wyprawy. Akceptacja po
+  blokadzie odświeża zgłoszenie i liczy ACCEPTED + organizator. Ta sama
+  blokada obejmuje edycję limitu miejsc i zamknięcie. Zamykanie odrzuca
+  PENDING w tej samej transakcji; ACCEPTED pozostają.
+- first_accepted_at w trips trwale oznacza pierwszą akceptację. Samo
+  decided_at nie wystarcza, ponieważ występuje także przy odrzuceniu.
+  Pole nie jest usuwane po wycofaniu; kraje, daty i budżet pozostają
+  zablokowane, liczba miejsc może jedynie wzrosnąć.
+- Kontakty są wyliczane z aktualnej relacji dla konkretnej wyprawy,
+  bez kopiowania do applications. Odczyt transakcyjny sprawdza VISIBLE,
+  opublikowany stan i aktywność obu kont. CLOSED zachowuje relację.
+  Administrator nie dostaje wyjątku. Wyłącznie organizer ↔ ACCEPTED.
+- Prywatne DTO zgłoszenia zawiera wiadomość; publiczni uczestnicy
+  otrzymują wyłącznie istniejący PublicProfile. ClientOnly dla wiadomości
+  i kontaktów; publiczna lista uczestników korzysta z SSR. Proxy
+  przepuszcza tylko jawne endpointy/metody. Prywatne odpowiedzi no-store.

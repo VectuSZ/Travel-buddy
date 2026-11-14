@@ -8,7 +8,9 @@ export default defineEventHandler(async event => {
   const tripRead = event.method === 'GET' && /^me\/trips(?:\/[0-9a-f-]+)?$/i.test(path)
   const tripWrite = (event.method === 'POST' && (path === 'trips' || /^trips\/[0-9a-f-]+\/(publish|close)$/i.test(path))) || (event.method === 'PATCH' && /^trips\/[0-9a-f-]+$/i.test(path))
   if (profileRead || profileWrite || tripRead || tripWrite) setHeader(event, 'Cache-Control', 'private, no-store')
-  if (!publicRead && !authRead && !authWrite && !profileRead && !profileWrite && !tripRead && !tripWrite) throw createError({ statusCode: 404 })
+  const applications = (event.method === 'GET' && (path === 'me/applications' || /^trips\/[0-9a-f-]+\/(applications|participants|contacts\/[0-9a-f-]+)$/i.test(path))) || (event.method === 'POST' && (/^trips\/[0-9a-f-]+\/applications$/i.test(path) || /^applications\/[0-9a-f-]+\/(accept|reject|withdraw)$/i.test(path)))
+  if (applications) setHeader(event, 'Cache-Control', 'private, no-store')
+  if (!applications && !publicRead && !authRead && !authWrite && !profileRead && !profileWrite && !tripRead && !tripWrite) throw createError({ statusCode: 404 })
   if (authRead || authWrite) setHeader(event, 'Cache-Control', 'no-store')
   // Never promote client-supplied forwarding headers to a trusted client IP.
   for (const header of ['forwarded', 'x-forwarded-for', 'x-real-ip']) delete event.node.req.headers[header]

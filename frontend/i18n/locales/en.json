@@ -177,7 +177,8 @@
     "peopleError": "Enter a whole number between 2 and 50.",
     "datesError": "The end must not precede the start.",
     "durationError": "A positive number of days must fit the window, including both ends.",
-    "budgetError": "Enter an amount from 0 to 99,999,999.99; the minimum must not exceed the maximum."
+    "budgetError": "Enter an amount from 0 to 99,999,999.99; the minimum must not exceed the maximum.",
+    "termsLocked": "After the first acceptance, countries, dates and budget cannot change and capacity cannot decrease."
   },
   "search": {
     "country": "Country (ISO code, e.g. PT)",
@@ -196,5 +197,37 @@
     "previous": "Previous",
     "next": "Next",
     "from": "Date from"
+  },
+  "applications": {
+    "mine": "My applications",
+    "incoming": "Trip applications",
+    "participants": "Participants",
+    "notice": "After acceptance your participation will be public. The organizer and accepted applicant can see each other’s private contacts. Other participants cannot access them.",
+    "ack": "I understand the sharing rules.",
+    "message": "Message to organizer",
+    "apply": "Apply",
+    "accept": "Accept",
+    "reject": "Reject",
+    "withdraw": "Withdraw application",
+    "contact": "Show contact",
+    "hide": "Hide contact",
+    "PENDING": "Pending",
+    "ACCEPTED": "Accepted",
+    "REJECTED": "Rejected",
+    "WITHDRAWN": "Withdrawn",
+    "errors": {
+      "session": "Sign in.",
+      "PROFILE_CONTACT_REQUIRED": "Complete your profile and contact.",
+      "TRIP_FULL": "No places available.",
+      "ALREADY_APPLIED": "You have already applied.",
+      "TRIP_CLOSED": "Trip is closed.",
+      "OWN_TRIP": "This is your trip.",
+      "CONTACT_FORBIDDEN": "Contact access denied.",
+      "APPLICATION_STATE": "Application state changed.",
+      "INVALID_MESSAGE": "Enter a message (1–2000 characters, no HTML).",
+      "APPLICATION_LIMIT": "Application limit reached.",
+      "error": "The operation failed."
+    },
+    "full": "Trip full"
   }
 }

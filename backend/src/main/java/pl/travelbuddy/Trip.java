@@ -31,6 +31,7 @@ public class Trip extends PanacheEntityBase {
  @Column(name="closed_at") public java.time.Instant closedAt;
  @Column(name="created_at") public java.time.Instant createdAt;
  @Column(name="updated_at") public java.time.Instant updatedAt;
+ @Column(name="first_accepted_at") public java.time.Instant firstAcceptedAt;
  @Version public int version;
  @Column(columnDefinition="text[]") public String[] styles = {};
 }

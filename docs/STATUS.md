@@ -282,3 +282,51 @@ Po końcowych testach zatrzymano uruchomione przez agenta serwery Nuxt
 oraz backend (tymczasowo Google wyłączone, limit rejestracji 30).
 PostgreSQL/Mailpit i lokalny wolumen pozostawiono. Konta E2E i dane
 wypraw pozostają lokalnie; nie wykonywano automatycznego czyszczenia.
+
+## Etap 5 — implementacja w toku (2026-11-14)
+
+Dodano V10 applications, trwały first_accepted_at, serwis zgłoszeń,
+publicznych uczestników i prywatnych kontaktów. Zapisy decyzji, zamknięcie
+oraz edycja wyprawy używają blokady jej rekordu. UI PL/EN ma zgłoszenie,
+panel autora, decyzje, wycofanie i prywatne odczyty kontaktów.
+Dotychczasowa regresja backendu 39/39 oraz typecheck/build przeszły.
+W toku: nowe testy PostgreSQL wyścigu/uprawnień i E2E procesu zgłoszenia.
+
+Etap 5 — backend zweryfikowany: **44/44 testów**, PostgreSQL 17.6,
+0 błędów i pominięć. ApplicationServiceTest (5 testów) potwierdza ostatnie
+miejsce (dokładnie jeden sukces, drugi 409 TRIP_FULL), A/B/C i brak B→C,
+wycofanie, HIDDEN/BLOCKED, zamknięcie z odrzuceniem PENDING, zachowanie
+kontaktów ACCEPTED, trwałą blokadę warunków po wycofaniu, własność,
+unikalność, CSRF i private,no-store. Cała wcześniejsza regresja przeszła.
+Początkowa próba wykazała odczyt nieaktualnego stanu w teście serwisu;
+prywatne odczyty otrzymały granicę transakcji i test przeszedł.
+Następny krok: końcowy E2E na ostatnim buildzie, dokumentacja odbioru.
+
+Etap 5 — UI i odbiór automatyczny ukończone:
+- typecheck i build ostatniej wersji: zaliczone;
+- applications.spec.ts: **2/2 PL/EN**, rzeczywisty PostgreSQL i zbudowany
+  Nuxt; B wysyła wiadomość przez UI, A czyta i akceptuje, B pojawia się
+  w publicznym SSR, A/B odczytują kontakty, C zostaje odrzucone;
+  wycofanie usuwa prywatny widok kontaktu; publiczny HTML nie zawiera
+  wiadomości, kontaktów ani adresu logowania;
+- git diff --check: bez błędów.
+Pełny backend w tej sesji: 44/44. Dotychczasowego pełnego E2E etapów 1–4
+nie ponawiano; nowy proces E2E obejmuje publiczne szczegóły i panel autora.
+
+Pierwszy E2E PL przeszedł, EN dostał 429 przy zakładaniu konta. Przyczyna:
+port 8080 zajęty przez istniejący backend autora (nowy proces zgłosił
+„Port 8080 seems to be in use”). Testy przeniesiono na 8082/3100 z
+lokalnym limitem rejestracji 40; oba języki przeszły. Nie zmieniano .env
+ani nie zatrzymywano istniejącego serwera autora.
+
+Polecenia: Maven test z URL osobnej bazy jak wyżej; npm run typecheck;
+npm run build; E2E_BASE_URL=http://localhost:3100 npx playwright test
+tests/applications.spec.ts. Szczegóły uruchomienia i odbiór A/B/C w README.
+Pozostaje ręczny odbiór interfejsu i układu mobilnego. Brak czatu,
+powiadomień i nowych funkcji moderacji (zgodnie z zakresem).
+Następne zadanie produktowe: etap 6. Bez commita, pushu ani wdrożenia.
+
+Po testach zatrzymano własne serwery testowe 8082/3100 i dodatkowy Nuxt.
+Automatyczna ocena początkowo wstrzymała kill z powodu niepotwierdzonego
+PID; po odczytowym sprawdzeniu ścieżki i czasu startu zatrzymanie przeszło.
+Procesy autora, PostgreSQL/Mailpit oraz wolumen pozostały bez usuwania danych.
