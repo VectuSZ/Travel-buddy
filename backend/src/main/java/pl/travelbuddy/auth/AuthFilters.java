@@ -7,7 +7,7 @@ import org.eclipse.microprofile.config.inject.ConfigProperty;
 @Provider @Priority(Priorities.AUTHENTICATION - 100)
 public class AuthFilters implements ContainerRequestFilter, ContainerResponseFilter {
  @ConfigProperty(name="auth.frontend-url") String origin;
- private boolean auth(ContainerRequestContext r) { String p=r.getUriInfo().getPath().replaceFirst("^/", ""); return p.startsWith("api/v1/auth/") || p.equals("api/v1/me") || p.startsWith("api/v1/me/") || p.startsWith("api/v1/profiles/"); }
+ private boolean auth(ContainerRequestContext r) { String p=r.getUriInfo().getPath().replaceFirst("^/", ""); return p.equals("api/v1/trips") || p.startsWith("api/v1/trips/") || p.startsWith("api/v1/auth/") || p.equals("api/v1/me") || p.startsWith("api/v1/me/") || p.startsWith("api/v1/profiles/"); }
  @Override public void filter(ContainerRequestContext r) {
   if (auth(r) && !java.util.Set.of("GET","HEAD","OPTIONS").contains(r.getMethod())) {
    if (!origin.equals(r.getHeaderString("Origin"))) { r.abortWith(Problems.response(403,"ORIGIN_REJECTED")); return; }

@@ -1,0 +1,33 @@
+import {test,expect} from '@playwright/test'
+test('pagination, copied SSR, validation and metadata',async({page,request})=>{
+ await page.goto('/pl/wyprawy?size=1')
+ const first=await page.locator('article h2').innerText()
+ await page.getByRole('link',{name:'Następna',exact:true}).click()
+ await expect(page).toHaveURL(/page=2/)
+ await expect(page.locator('article h2')).not.toHaveText(first)
+ await page.goBack()
+ await expect(page.locator('article h2')).toHaveText(first)
+ await page.locator('[name=country]').fill('PT')
+ await page.locator('form [type=submit]').click()
+ await expect(page).toHaveURL(/country=PT/)
+ await expect(page).not.toHaveURL(/page=/)
+ await expect(page.locator('article h2')).toHaveText('Discover Portugal')
+ await expect(page.locator('article')).toHaveCount(1)
+ const html=await (await request.get(page.url())).text()
+ expect(html).toContain('noindex,follow')
+ expect(html.replace(/<script\b[^>]*>[\s\S]*?<\/script>/gi,'')).toContain(await page.locator('article h2').innerText())
+ const demo='11111111-1111-4111-8111-111111111111'
+ const old=await request.get('/trips/'+demo,{maxRedirects:0})
+ expect(old.status()).toBe(301)
+ expect(old.headers().location).toBe('/pl/wyprawy/'+demo+'/weekend-w-tatrach')
+ for(const url of ['/pl/wyprawy/'+demo+'/old','/pl/wyprawy/'+demo]){
+  const r=await request.get(url,{maxRedirects:0});expect(r.status()).toBe(301)
+ }
+ const detail=await (await request.get('/en/trips/'+demo+'/weekend-w-tatrach')).text()
+ expect(detail).toContain('href="http://localhost:3000/pl/wyprawy/'+demo+'/weekend-w-tatrach"')
+ expect(detail).toContain('name="description"')
+ expect(detail).toContain('lang="pl"')
+ const invalid=await request.get('/pl/wyprawy?budgetMin=2500&budgetMax=2200')
+ expect(invalid.status()).toBe(400)
+ expect(await invalid.text()).toContain('Nieprawidłowe filtry')
+})

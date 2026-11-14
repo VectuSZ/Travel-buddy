@@ -200,3 +200,83 @@ Start Google jest ograniczony do 10 prób na 15 minut na adres proxy/IP.
 - Testy zwykłego auth wymuszają wyłączenie Google w profilu test, niezależnie
   od lokalnego .env. Osobny kontrolowany dostawca OIDC włącza integrację
   tylko na czas swoich testów. Nie wymaga prawdziwych credentials.
+
+## Organizacja weryfikacji i statusu (2026-11-14)
+
+- Bieżące ukończone zakresy, datowane wyniki testów, otwarte sprawdzenia
+  i następny krok zapisujemy w docs/STATUS.md. PLAN opisuje dalszy zakres,
+  README polecenia i scenariusze ręczne, DECISIONS decyzje techniczne.
+- Testy Maven uruchamiamy przy zatrzymanym backendzie dev: oba procesy
+  korzystają z backend/target, a równoległa przebudowa wywołała konflikt
+  classloaderów hot reload. Dopiero po testach uruchamiamy dev dla E2E.
+- Wynik testów kontrolowanego OIDC nie potwierdza ręcznego logowania
+  przez Google. Status rozróżnia te sprawdzenia i podaje datę wyników.
+
+## 2026-11-14 — początek migracji etapu 4 (implementacja nieukończona)
+
+V6 addytywnie zachowuje kolumny etapu 1, UUID i treść; kopiuje opis i daty
+ do nowych pól. Starsze rekordy bez właściciela pozostają DRAFT.
+V7 znajduje się wyłącznie w db/demo (dev/test): przypisuje dwa znane UUID
+konta demonstracyjnego bez hasła i tożsamości logowania. Nie przypisuje
+wypraw pierwszemu zalogowanemu użytkownikowi. Nieznane starsze rekordy
+wymagają osobnej, jawnej decyzji o właścicielu.
+Migracje są początkiem pracy: dotychczasowy model ORM i API nadal używają
+kolumn etapu 1. Przed ukończeniem etapu trzeba zmienić ograniczenia starych
+kolumn umożliwiając niekompletne szkice oraz wdrożyć walidację publikacji.
+
+## 2026-11-14 — backend cyklu życia wypraw
+
+- Zachowano V6/V7 bez przepisywania. V8 usuwa NOT NULL ze starych pól
+  i poszerza język treści; stare kolumny/dane pozostają. V9 tylko dev/test
+  publikuje demonstracyjne rekordy z dodatkowymi warunkami, aby stare
+  publiczne strony działały. Nie tworzy hasła ani tożsamości logowania.
+- Nowe zapisy używają nowych pól; publiczne aliasy description,
+  startDate/endDate zachowują kompatybilność. organizer jest minimalnym
+  publicznym DTO albo null dla demonstracyjnego konta bez profilu.
+- Jeden serwis transakcyjny zapisuje wyprawę i lokalizacje. Blokada
+  użytkownika serializuje zapisy, kontrolę kontaktów i limitów;
+  @Version i obowiązkowe version odrzucają stary formularz przez 409.
+  Aktualizacja samej trasy też aktualizuje znacznik wyprawy i wersję.
+- Publikacja korzysta z rzeczywistych flag ProfileService; edycja OPEN
+  sprawdza kompletność ogłoszenia. CLOSED nie jest edytowalne ani otwierane
+  ponownie. Limity 3/dzień UTC i 5 OPEN są konfigurowalne.
+- Publiczna lista: OPEN/VISIBLE/aktywny organizator. Szczegóły dopuszczają
+  CLOSED. Szkice, HIDDEN i nieaktywne konta dają 404. Jawne DTO nie
+  zawierają encji, kontaktów ani e-maila logowania.
+- Test migracji używa dwóch osobnych baz PostgreSQL i Flyway
+  (od zera oraz target V2 → latest), bez clean i bez usuwania baz.
+  Nazwy pozostawionych baz są wypisywane w logu testu.
+
+## 2026-11-14 — prywatny edytor wypraw
+
+- /my-trips oraz /my-trips/edit?id=UUID (i warianty /en) mają ClientOnly,
+  noindex i no-store. Dane są lokalnym stanem komponentu, bez SSR payloadu.
+  Pusty edytor nie tworzy rekordu. Pierwszy zapis zamienia URL na UUID;
+  kolejne zapisy używają PATCH i wersji z odpowiedzi.
+- Publikacja to zapis, następnie POST publish. Po odmowie publikacji
+  zapisany szkic pozostaje pod tym samym UUID. Bez automatycznych retry.
+  Pola kompletności są wymagane dopiero przy publikacji lub edycji OPEN.
+- Konflikt nie nadpisuje formularza. Jawne przeładowanie ostrzega, że
+  zastąpi wpisane dane. Zamknięcie działa na zapisanej wyprawie; potwierdzenie
+  informuje również o niezapisanych zmianach. CLOSED jest tylko do odczytu.
+- Kody krajów ISO są lokalną listą; nazwy PL/EN pochodzą z Intl.DisplayNames.
+  Języki i style współdzielą istniejący słownik profilu.
+- Publiczne szczegóły pokazują status, aby link do CLOSED był czytelny.
+  Nie zmieniano publicznych filtrów, paginacji, adresów ani SEO.
+
+## 2026-11-14 — wyszukiwanie i adresy etapu 4
+
+- GET /trips zwraca kopertę items,total,page,size. Wcześniej nie było
+  konwencji paginacji; wybieramy numerację od 1. Rozmiar poza 1–50,
+  niepoprawny kraj/styl i odwrócony zakres dają 400 INVALID_SEARCH.
+- Parametryzowany SQL: EXISTS dla kraju, ANY dla tablicy stylów,
+  wspólne warunki licznika i wyników. Przedziały domknięte; paginacja
+  oraz sortowanie published_at DESC,id DESC są wykonywane w bazie.
+- Slug wyliczamy deterministycznie z aktualnego tytułu w DTO, bez
+  przebudowy starych danych. UUID identyfikuje rekord. Zmiana tytułu
+  automatycznie zmienia slug, stary URL przekierowuje po kontroli widoczności.
+- Kanoniczna wersja treści EN: /en/trips, pozostałe języki: /pl/wyprawy.
+  Drugi wariant UI ma ten sam canonical; nie dodajemy hreflang do treści
+  autora. Origin canonical: runtimeConfig.public.siteUrl, lokalnie localhost.
+- Stare / i /en nadal udostępniają listę dla zgodności; nowe lokalizowane
+  listy są pod /pl/wyprawy i /en/trips. Pełna sitemap i końcowe SEO: etap 7.

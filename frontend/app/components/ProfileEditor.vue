@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { languageCodes, styleCodes } from '../../shared/profile'
+import { languageCodes, styleCodes } from '~/utils/profileCodes'
 import type { Me } from '../../shared/profile'
 const { t } = useI18n()
 const localePath = useLocalePath()
@@ -60,7 +60,7 @@ async function save(kind:'profile'|'contacts') {
  <div v-if="me">
   <p role="status">{{ t(me.readyToParticipate?'profile.ready':!me.profileComplete?'profile.missingProfile':'profile.missingContact') }}</p>
   <NuxtLink v-if="me.profile" :to="localePath('/profiles/'+me.userId)">{{ t('profile.view') }}</NuxtLink>
-  <section><h2>{{ t('profile.public') }}</h2><p>{{ t('profile.publicHint') }}</p>
+  <section id="profile"><h2>{{ t('profile.public') }}</h2><p>{{ t('profile.publicHint') }}</p>
    <form @submit.prevent="save('profile')"><fieldset :disabled="profileBusy">
     <label>{{ t('profile.displayName') }}<input v-model="profile.displayName" name="displayName" required minlength="2" maxlength="60"><span v-if="profileError==='INVALID_DISPLAY_NAME'">{{ t('profile.errors.INVALID_DISPLAY_NAME') }}</span></label>
     <label>{{ t('profile.age') }}<input v-model.number="ageEntered" name="age" type="number" required min="18" max="120" step="1"><span v-if="profileError==='INVALID_AGE'">{{ t('profile.errors.INVALID_AGE') }}</span></label>
@@ -73,7 +73,7 @@ async function save(kind:'profile'|'contacts') {
     <button type="submit">{{ profileBusy?t('loading'):t('profile.saveProfile') }}</button>
    </fieldset></form>
   </section>
-  <section><h2>{{ t('profile.contacts') }}</h2><p>{{ t('profile.contactsHint') }}</p><p>{{ t('profile.phoneHint') }}</p>
+  <section id="contacts"><h2>{{ t('profile.contacts') }}</h2><p>{{ t('profile.contactsHint') }}</p><p>{{ t('profile.phoneHint') }}</p>
    <form @submit.prevent="save('contacts')"><fieldset :disabled="contactsBusy">
     <label v-for="f in fields" :key="f">{{ t('profile.'+f) }}<input v-model="contacts[f]" :name="f" :type="f==='contactEmail'?'email':'text'" :maxlength="f==='contactEmail'?254:f==='instagramHandle'?31:16"><span v-if="contactsError===fieldCodes[f]">{{ t('profile.errors.'+fieldCodes[f]) }}</span></label>
     <p v-if="contactsError" role="alert">{{ t('profile.errors.'+contactsError) }}</p><p v-if="savedContacts" role="status">{{ t('profile.saved') }}</p>

@@ -469,3 +469,142 @@ Prawdziwe logowanie Google nie było ponawiane w etapie 3; regresję OIDC
 sprawdzono kontrolowanym dostawcą. Nie wykonywano wdrożenia ani testów
 publicznego HTTPS. Kontakty pozostają nieweryfikowane i dostępne wyłącznie
 właścicielowi. Udostępnianie ich w ramach wypraw należy do przyszłych etapów.
+
+## Backend etapu 4 — cykl życia wypraw
+
+Backend obsługuje szkic → publikację → zamknięcie. Formularze, filtry
+i nowe widoki SSR pozostają następnym zadaniem. Stare pola publicznego
+DTO pozostają dla zgodności stron; nowe zawierają trasę, warunki, status
+i minimalny profil organizatora (null dla demonstracyjnego konta bez profilu).
+
+| Endpoint pod /api/v1 | Działanie |
+| --- | --- |
+| POST /trips | Szkic, także z pustym obiektem; HTTP 201 |
+| GET /me/trips | Własne wyprawy |
+| GET /me/trips/{id} | Własny model edycyjny |
+| PATCH /trips/{id} | Częściowa edycja, wymagane version |
+| POST /trips/{id}/publish | Publikacja, body: version |
+| POST /trips/{id}/close | Zamknięcie, body: version |
+
+Zapisy wymagają sesji, Origin i CSRF jak endpointy profilu. Nieznane pola
+są odrzucane. Brak pola PATCH zachowuje wartość, null usuwa wartość;
+locations zastępuje całą uporządkowaną trasę. Pusta tablica usuwa trasę
+szkicu. Nie można edytować CLOSED ani ponownie go otworzyć.
+Konflikt: 409 TRIP_VERSION_CONFLICT. Cudza wyprawa: 404.
+
+Przykładowy komplet do PATCH (version pobierz z odczytu autora):
+
+    {
+      "version": 0,
+      "title": "Weekend w górach",
+      "itinerary": "Wspólne spokojne wędrówki.",
+      "lookingFor": "Osoby lubiące piesze wycieczki.",
+      "contentLanguage": "pl",
+      "dateMode": "FLEXIBLE",
+      "dateFrom": "2027-06-01",
+      "dateTo": "2027-06-10",
+      "durationDays": 3,
+      "targetPeople": 4,
+      "budgetMin": 300,
+      "budgetMax": 800,
+      "styles": ["trekking"],
+      "locations": [{"countryCode": "PL", "city": "Zakopane"}]
+    }
+
+Limity: trips.publish-per-day=3 (dzień UTC), trips.max-open=5.
+Blokada właściciela serializuje publikacje. Dzienny limit obejmuje też
+zamknięte publikacje z tego dnia.
+
+### Testy na osobnej bazie
+
+Przy zatrzymanym backendzie dev:
+
+    docker compose exec -T postgres sh -c 'createdb -U "$POSTGRES_USER" travel_buddy_stage4_test_20261114'
+    ./scripts/backend.sh test -Dquarkus.datasource.jdbc.url=jdbc:postgresql://127.0.0.1:5433/travel_buddy_stage4_test_20261114
+
+Pierwsze polecenie wykonaj tylko raz — baza utworzona w tej sesji już
+istnieje. TripMigrationTest wymaga uprawnienia CREATEDB lokalnej roli
+Compose. Tworzy dwie bazy tb_migration_<uuid>, uruchamia prawdziwy Flyway
+od zera i od V2, sprawdza dane oraz validate. Bazy pozostają do inspekcji;
+ich nazwy są w logu. Nie usuwa lokalnej bazy ani wolumenu.
+
+### Ręczny odbiór backendu na dwóch kontach
+
+1. Na koncie A uzupełnij profil i kontakt w /account. W narzędziu API
+   z cookies sesji A pobierz CSRF, utwórz POST /trips z {}.
+   Odczytaj zapisany UUID przez /me/trips/{id}.
+2. PATCH z przykładową treścią i aktualną version. Powtórz PATCH ze starą
+   wersją — oczekuj 409 i zachowania nowszej treści.
+3. Z sesją B spróbuj odczytu autora i PATCH tego UUID — oczekuj 404.
+   Anonimowy GET /trips/{id} także ma zwrócić 404.
+4. Z sesją A wywołaj publish z aktualną version. Anonimowy czytelnik i B
+   zobaczą wyprawę na liście oraz szczegóły, bez kontaktu i e-maila A.
+5. Z sesją A wywołaj close z wersją zwróconą przez publish. Wyprawa znika
+   z listy, a szczegóły mają CLOSED. Dla osobnego szkicu usuń kontakt A:
+   publikacja ma zwrócić 400 INVALID_CONTACT_REQUIRED.
+
+Nie ma jeszcze interfejsu tworzenia wypraw; odbiór dotyczy API.
+
+## Formularze wypraw — odbiór w przeglądarce
+
+Interfejs autora etapu 4 jest już dostępny (zastępuje wcześniejszą
+informację o obsłudze wyłącznie przez API). Uruchom Compose, backend
+i frontend jak na początku README, używając http://localhost:3000.
+
+1. Zaloguj konto A. Uzupełnij profil w „Moje konto”, początkowo bez kontaktu.
+   W „Moje wyprawy” wybierz „Utwórz wyprawę”, wpisz tylko tytuł i zapisz
+   szkic. Odśwież stronę, wróć na listę autora i otwórz ten sam szkic.
+2. Uzupełnij trasę, plan, kogo szukasz, język, styl, daty, liczbę osób
+   i budżet. Przestaw lokalizacje. Kliknij „Opublikuj”: komunikat o braku
+   kontaktu ma prowadzić do odpowiedniej sekcji konta. Ponowienie nie
+   powinno tworzyć drugiego szkicu.
+3. Dodaj kontakt, wróć do szkicu i opublikuj. Otwórz „Publiczne szczegóły”
+   na koncie B w osobnym profilu przeglądarki. Kontakt A pozostaje prywatny.
+4. Edycję sprawdź w dwóch kartach A: zapisz zmianę w jednej, potem drugiej.
+   Druga powinna zachować wpisany tekst i pokazać konflikt. Dopiero
+   „Wczytaj aktualną wersję” zastępuje tekst nowszą treścią.
+5. Zamknij wyprawę jako A i potwierdź. Na liście autora jest „Zamknięta”;
+   na publicznej liście wyprawy nie ma, ale zapisany link nadal działa.
+6. Powtórz w EN i sprawdź układ na wąskim ekranie. Wyprawa zamknięta
+   pozostaje tylko do odczytu.
+
+Typecheck/build: dotychczasowe polecenia. Pełny zestaw E2E tworzy 8 kont,
+więc dla jednego przebiegu uruchom backend testowo:
+
+    ./scripts/backend.sh quarkus:dev -Dauth.rate.register-ip=30 -Dauth.google.enabled=false
+
+Następnie przy uruchomionym Nuxt i Mailpit:
+
+    cd frontend
+    npm run test:e2e
+
+Sam nowy zestaw: npx playwright test tests/trips.spec.ts (PL i EN).
+Ustawienia powyżej dotyczą wyłącznie bieżącego procesu; zwykłe uruchomienie
+przywraca konfigurację lokalną. Nie zmieniaj .env dla tych testów.
+E2E pozostawiają konta i wyprawy; nie usuwają wolumenu.
+
+## Publiczne wyszukiwanie — ukończony etap 4
+
+Listy: http://localhost:3000/pl/wyprawy oraz /en/trips.
+Stare / i /en nadal działają. API GET /api/v1/trips przyjmuje:
+country (ISO, np. PT), from/to (YYYY-MM-DD), budgetMin/budgetMax (PLN/os.),
+style (kod profilu), page (od 1), size (1–50, domyślnie 20).
+Odpowiedź: {items: [...], total, page, size}. Zastępuje dawną tablicę.
+Granice dat i budżetu są włączne; można podać jedną granicę.
+Błędne filtry: 400 INVALID_SEARCH. Kolejność published_at DESC,id DESC.
+
+Przykład skopiowanego URL:
+http://localhost:3000/pl/wyprawy?country=PT&budgetMin=2200&budgetMax=2500
+
+Ręcznie: opublikuj jako A trasę Porto → Lizbona za 1500–2200 PLN.
+Jako B ustaw PT i budżet 2200–2500: wyprawa pojawia się raz.
+Minimum 2200.01 ją wyklucza. Sprawdź daty, styl, rozmiar strony,
+Wstecz i skopiowanie adresu do okna prywatnego. Po zamknięciu przez A
+znika z wyników, ale zapisany link szczegółów nadal pokazuje Zamknięta.
+Stary URL bez sluga i nieaktualny slug przekierowują 301. Źródło HTML
+zawiera wyniki/metadane bez potrzeby JS i bez kontaktów.
+
+Dodatkowy test: cd frontend && npx playwright test tests/search.spec.ts.
+Test cyklu życia trips.spec.ts obejmuje teraz także wyszukanie i SSR.
+Canonical używa lokalnego http://localhost:3000, konfigurowalnego przez
+NUXT_PUBLIC_SITE_URL. Nie jest to konfiguracja wdrożenia.
