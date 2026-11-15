@@ -1,5 +1,55 @@
 # Status projektu
 
+## Aktualny stan — 2026-11-15
+
+Praca wyłącznie lokalna. Poniższe podsumowanie zastępuje starsze wpisy
+„w toku” i „następny krok”; historia wyników pozostaje poniżej.
+
+**Ukończone implementacje i zapisane dowody:**
+
+| Zakres | Ostatnie potwierdzenie |
+| --- | --- |
+| Etapy 1, 2A, 2B, 3: SSR PL/EN, konta, OIDC, profile i kontakty | Regresja w 39/39 backendu etapu 4; w tym 9 testów kontrolowanego OIDC i 6 profili. SSR 4/4 i E2E auth/profili zaliczone. |
+| Etap 4: publikacja, wyszukiwanie, paginacja, slugi i podstawowe SEO | 2026-11-14: backend 39/39, pełne ówczesne E2E 6/6, SSR 4/4, proxy, typecheck i build. |
+| Etap 5: zgłoszenia, decyzje, uczestnicy i kontakty po akceptacji | 2026-11-14: backend 44/44, nowe E2E PL/EN 2/2, typecheck i build. |
+| Etap 6: raporty, ADMIN, audyt, ukrywanie i blokowanie | 2026-11-15: 16/16 testów dotkniętych modułów, E2E moderacji 1/1 (także anonimowy formularz EN), typecheck i build. |
+
+Wyniki powyżej pochodzą z wcześniejszych przebiegów. Przy tej aktualizacji
+dokumentacji nie uruchamiano testów aplikacji ponownie. Etap 6 nadal
+zawiera zmiany staged i unstaged; zachowano je bez commita/pushu.
+
+**Niezakończone i miejsce wznowienia:**
+
+- Nie ma przerwanej implementacji etapów 4–6. Etap 7 nie został rozpoczęty.
+- Ujawniona luka UX: brak klikalnych profili przy uczestnikach i zgłoszeniach.
+  Ewentualną poprawkę zacząć od frontend/app/components/ParticipantsList.vue
+  (person.userId) oraz ApplicationsPanel.vue (applicantId/organizerId).
+  Profil istnieje pod /profiles/{userId}; publiczne szczegóły wyprawy są
+  w frontend/app/pages/trip-detail/[id]/[[slug]].vue.
+- Organizator nie może usunąć zaakceptowanego uczestnika; wycofuje się
+  sam uczestnik. Panel ADMIN blokuje konto z raportu profilu, bez katalogu
+  kont. Rozszerzenia tych zachowań wymagają osobnego ustalenia zakresu.
+- Integracja rzeczywistego Turnstile istnieje, lecz testowano tylko lokalny
+  symulator. Powiadomienia moderacji nie mają trwałego retry po awarii SMTP.
+
+**Pozostałe ręczne sprawdzenia:**
+
+- Prawdziwe Google OIDC, start ze świeżego checkoutu i utrzymanie aktywnej
+  sesji po restarcie backendu — nadal brak zapisanego potwierdzenia.
+- Odbiór UI PL/EN i na telefonie: publikacja, zgłoszenia A/B/C, kontakty,
+  moderacja i blokada sesji; sprawdzenie wiadomości decyzji w Mailpit.
+  Samych pytań o obsługę panelu nie traktujemy jako potwierdzonego odbioru.
+- Rzeczywiste klucze Turnstile i Siteverify — brak testu z Cloudflare.
+
+**Następne zadanie:** po ręcznym odbiorze etap 7. Przed nim warto uzgodnić
+małą poprawkę linków do profili, aby zgłoszenie użytkownika nie wymagało
+ręcznego składania URL. Nie dodawać samodzielnie usuwania uczestników.
+
+Własne serwery testowe 8082/3100 zatrzymano po testach etapu 6; to zapis
+historyczny, nie bieżący monitoring. Baza i wolumen zostały zachowane.
+
+## Historia prac i wyników
+
 Aktualizacja: 2026-11-14. Praca wyłącznie lokalna, bez wdrożenia.
 
 ## Ukończone
@@ -330,3 +380,56 @@ Po testach zatrzymano własne serwery testowe 8082/3100 i dodatkowy Nuxt.
 Automatyczna ocena początkowo wstrzymała kill z powodu niepotwierdzonego
 PID; po odczytowym sprawdzeniu ścieżki i czasu startu zatrzymanie przeszło.
 Procesy autora, PostgreSQL/Mailpit oraz wolumen pozostały bez usuwania danych.
+
+## Etap 6 — moderacja, 2026-11-15 (w toku)
+
+V11 dodaje reports i moderation_actions. Raport anonimowy/z sesji,
+walidacja dokładnie jednego publicznego celu, lokalny jednorazowy challenge,
+limit 5/h/IP, admin API, audyt, hide/unhide i block/unblock są zaimplementowane.
+Blokada usuwa sesje; istniejące reguły odbierają widoczność i kontakty.
+Powiadomienia po commit trafiają lokalnie do Mailpit (w testach MockMailbox).
+
+Wykonano testy dotkniętych modułów: 16/16 (ModerationTest wraz z testami
+relacji uczestników, TripResourceTest, ProfileResourceTest). Typecheck/build
+przeszły po poprawieniu jawnego typu config i brakującego localePath.
+W toku: ostatnie uzupełnienie szczegółów celu w panelu i E2E.
+
+Etap 6 — ukończono implementację i lokalną weryfikację (2026-11-15).
+Panel ADMIN filtruje OPEN/RESOLVED/DISMISSED, pokazuje bezpieczne szczegóły
+celu i umożliwia decyzję z uzasadnieniem oraz hide/unhide/block/unblock.
+Formularze PL/EN zachowują dane po błędzie. Link „Zgłoś” jest na wyprawie
+i profilu. Raporty i panel są klientowe, no-store/noindex.
+
+Końcowe sprawdzenia:
+- ./scripts/backend.sh test -Dtest=ModerationTest,TripResourceTest,ProfileResourceTest
+  -Dquarkus.datasource.jdbc.url=jdbc:postgresql://127.0.0.1:5433/travel_buddy_stage4_test_20261114
+  — **16/16**, PostgreSQL, zero błędów i pominięć. W tym anonimowy
+  i zalogowany reporter, błędny/brakujący cel, długość/kategoria/token,
+  ponowne użycie tokenu, limit 5/h, odmowa USER, audyt, Mailpit mock,
+  hide/unhide CLOSED, blokada/sesje/kontakty i prywatność odpowiedzi.
+  ModerationTest dziedziczy też pięć scenariuszy relacji uczestników.
+- cd frontend && npm run typecheck — zaliczone.
+- cd frontend && npm run build — zaliczone.
+- E2E_BASE_URL=http://localhost:3100 E2E_SETUP_ADMIN=1
+  ./node_modules/.bin/playwright test tests/moderation.spec.ts
+  — **1/1 rozbudowany scenariusz**, bez pominięcia: zgłoszenie A, ADMIN,
+  uzasadnienie/ukrycie/rozstrzygnięcie, brak na anonimowej liście i 404
+  szczegółów; anonimowy raport EN, odrzucony token i zachowanie tekstu,
+  ponowienie zakończone sukcesem; panel EN.
+- git diff --check — bez błędów.
+Nie uruchamiano pełnego niezwiązanego zestawu testów. Dwa początkowe
+błędy typecheck (inferencja typu config i localePath) zostały poprawione.
+
+Prawdziwe Cloudflare Siteverify jest zaimplementowane, ale nie wykonano
+testu z rzeczywistymi kluczami/siecią Cloudflare. Testy używają lokalnego
+adaptera z jednorazowymi tokenami; nie przedstawiamy go jako ochrony
+produkcyjnej. Ręczny odbiór UI/mobilny pozostaje dla autora.
+Wysyłka decyzji: potwierdzona MockMailbox, dev kieruje ją do Mailpit;
+brak trwałego retry przy awarii SMTP jest ograniczeniem.
+Wolumenu nie usuwano. Dane syntetyczne E2E pozostają, tymczasową rolę
+ADMIN odebrano również dwóm kontom z wcześniejszych przebiegów.
+Następny etap: 7. Bez commita, pushu i wdrożenia.
+
+Po weryfikacji zatrzymano własne serwery testowe 8082/3100. PostgreSQL,
+Mailpit i istniejące procesy autora pozostały bez zmian. Wszystkie raporty,
+uzasadnienia i audyt testów pozostają lokalnie; wolumenu nie usuwano.

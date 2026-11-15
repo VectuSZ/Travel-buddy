@@ -2,6 +2,10 @@ export default defineNuxtConfig({
  compatibilityDate: '2026-11-06',
  modules: ['@nuxtjs/i18n'],
  routeRules: {
+   '/moderation': { headers: { 'Cache-Control': 'private, no-store' } },
+   '/en/moderation': { headers: { 'Cache-Control': 'private, no-store' } },
+   '/report': { headers: { 'Cache-Control': 'private, no-store' } },
+   '/en/report': { headers: { 'Cache-Control': 'private, no-store' } },
    '/my-trips/**': { headers: { 'Cache-Control': 'private, no-store' } },
    '/en/my-trips/**': { headers: { 'Cache-Control': 'private, no-store' } },
    '/profiles/**': { headers: { 'Cache-Control': 'private, no-store' } },

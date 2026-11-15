@@ -662,3 +662,82 @@ uruchomić osobne procesy (bez zmiany .env), z katalogu głównego:
 W frontend: E2E_BASE_URL=http://localhost:3100 npx playwright test tests/applications.spec.ts.
 Dane testowe pozostają lokalnie. Nie usuwaj wolumenu. Testy Maven wykonuj
 przed uruchomieniem dev ze względu na wspólny katalog target.
+
+## Etap 6 — zgłoszenia nadużyć i ADMIN
+
+Uruchomienie pozostaje jak wcześniej; Flyway zastosuje V11 bez usuwania
+danych. „Zgłoś” na wyprawie/profilu otwiera formularz. Anonimowy reporter
+podaje nazwę i e-mail; dla zalogowanego tożsamość pochodzi z sesji.
+Kategorie: spam, nękanie, oszustwo, niebezpieczna treść, inne. Raport
+wymaga opisu i potwierdzenia dobrej wiary. Limit: 5 prób/h/IP.
+
+Lokalnie przycisk „Weryfikuj lokalnie” uzyskuje jednorazowy token, który
+backend sprawdza. To jawny symulator dev/test, bez komunikacji z Cloudflare.
+Nie wystarcza do publicznego wdrożenia i nie uruchomi się w profilu NORMAL.
+Rzeczywisty adapter wymaga TURNSTILE_SITE_KEY i TURNSTILE_SECRET w .env
+oraz uruchomienia backendu z -Dreports.challenge.local=false. Serwer
+sprawdza Siteverify, hostname i action=report; frontend nie zatwierdza
+samodzielnie tokenu. Nie skonfigurowano usług chmurowych w tej sesji.
+
+### Lokalny administrator
+
+Zarejestruj oddzielne konto przez UI. Zalogowany GET /api/v1/me zwraca
+jego userId. Właściciel projektu może nadać ADMIN wyłącznie temu UUID:
+
+    docker compose exec postgres sh -c 'psql -U "$POSTGRES_USER" -d "$POSTGRES_DB"'
+
+W konsoli SQL (zastąp UUID rzeczywistym identyfikatorem):
+
+    UPDATE users SET role='ADMIN' WHERE id='TU-UUID-KONTA';
+    \q
+
+Nie ma endpointu samodzielnego nadawania uprawnień. Po odświeżeniu
+nawigacja pokazuje „Moderacja”; adres /moderation (EN: /en/moderation).
+Zwykłe konto dostaje 403 z endpointów admina, nawet przy bezpośrednim URL.
+
+### Odbiór ręczny
+
+1. A lub osoba anonimowa zgłasza publiczną wyprawę. Po błędzie zachowaj
+   opis, popraw dane i ponów weryfikację. Potwierdzenie nie obiecuje wyniku.
+2. ADMIN otwiera raport, sprawdza cel i wpisuje uzasadnienie.
+   „Ukryj wyprawę” usuwa ją z listy/filtrów i daje 404 szczegółów.
+   „Przywróć wyprawę” nie otwiera zamkniętej wyprawy.
+3. Osobno „Rozstrzygnij” lub „Oddal” zamyka raport; filtr statusów
+   pozwala go ponownie zobaczyć. Powstaje audyt. Mailpit: localhost:8025.
+4. Zgłoś profil użytkownika; ADMIN może zablokować konto. Stara sesja
+   przestaje działać, publiczny profil/wyprawy znikają i kontakty przez
+   wyprawę nie są dostępne. Odblokowanie nie przywraca starych sesji.
+5. Sprawdź PL/EN, pustą listę i nieudany zapis. Panel nie pokazuje
+   prywatnych kontaktów ani e-maila logowania celu.
+
+API: POST /api/v1/reports; GET /reports/config, POST /reports/challenge
+(lokalny adapter); GET /admin/access, GET /admin/reports?status=OPEN;
+POST /admin/reports/{id}/resolve z {status,reason};
+POST /admin/trips/{id}/hide lub unhide oraz
+POST /admin/users/{id}/block lub unblock z {reason}.
+Prefiks wszystkich endpointów: /api/v1. Zapisy: CSRF + Origin,
+admin dodatkowo aktywna sesja ADMIN. Reporter nie otrzymuje endpointu
+odczytu cudzych raportów. Audit pozostaje w moderation_actions.
+
+### Testy moderacji
+
+Backend (z katalogu projektu, przed startem dev):
+
+    ./scripts/backend.sh test -Dtest=ModerationTest,TripResourceTest,ProfileResourceTest -Dquarkus.datasource.jdbc.url=jdbc:postgresql://127.0.0.1:5433/travel_buddy_stage4_test_20261114
+
+Frontend:
+
+    cd frontend
+    npm run typecheck
+    npm run build
+
+Backend i zbudowany Nuxt na osobnych portach uruchom według instrukcji
+etapu 5 (8082/3100). Następnie z katalogu frontend:
+
+    E2E_BASE_URL=http://localhost:3100 E2E_SETUP_ADMIN=1 ./node_modules/.bin/playwright test tests/moderation.spec.ts --headed
+
+Flaga jawnie zezwala testowi na nadanie ADMIN nowo utworzonemu kontu
+przez lokalny Docker/psql. Test przywraca USER w finally; dane i audyt
+zostają. Bez flagi test jest pomijany, co nie oznacza zaliczenia.
+Nie uruchamiaj go przeciw innemu środowisku. Użycie lokalnego pliku
+Playwright zapobiega przypadkowemu użyciu innej wersji przez npx.

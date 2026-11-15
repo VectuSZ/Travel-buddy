@@ -302,3 +302,42 @@ kolumn umożliwiając niekompletne szkice oraz wdrożyć walidację publikacji.
   otrzymują wyłącznie istniejący PublicProfile. ClientOnly dla wiadomości
   i kontaktów; publiczna lista uczestników korzysta z SSR. Proxy
   przepuszcza tylko jawne endpointy/metody. Prywatne odpowiedzi no-store.
+
+## 2026-11-15 — zgłoszenia nadużyć i moderacja
+
+- V11 przechowuje reports i nieusuwalny przez API audyt moderation_actions.
+  Dokładnie jeden publiczny cel jest walidowany w serwisie; URL musi być
+  wewnętrzną ścieżką do tego UUID, bez query/fragmentów/obcego hosta.
+  Kategorie: SPAM, HARASSMENT, FRAUD, UNSAFE, OTHER. Opis 1–4000 znaków,
+  imię anonimowego zgłaszającego 1–120 i poprawny e-mail do 254 znaków,
+  potwierdzenie dobrej wiary. Reporter zalogowany zawsze pochodzi z sesji.
+- Wszystkie zapisy wymagają CSRF/Origin. Limit raportów 5/h/IP, osobny
+  limit wydania lokalnego tokenu 20/h/IP. Stosujemy dotychczasowy limiter
+  procesu i zaufany adres połączenia, bez akceptowania X-Forwarded-For.
+  Lokalny proxy powoduje współdzielenie limitu IP; restart resetuje licznik.
+- Brak wcześniejszej integracji Turnstile. Adapter używa oficjalnego
+  Siteverify i sprawdza success, hostname z auth.frontend-url oraz action
+  report. Błędy sieci/konfiguracji/tokenów nie przepuszczają raportu.
+  https://developers.cloudflare.com/turnstile/get-started/server-side-validation/
+- Dev/test domyślnie używa jawnego symulatora: losowy token wydany przez
+  serwer, jeden odczyt, ważność 5 min, maks. 1000 wpisów. Nie jest to
+  zabezpieczenie antybot dla internetu. LaunchMode.NORMAL odrzuca lokalny
+  tryb przy inicjalizacji. Poza dev/test brak kluczy nie pozwala zgłaszać.
+- ADMIN jest sprawdzany w backendzie przy każdej operacji; UI nie stanowi
+  zabezpieczenia. Panel pokazuje cel (tytuł/plan lub publiczny profil),
+  opis raportu i status, ale nie profile_contacts, e-mail logowania ani
+  dane kontaktowe anonimowego zgłaszającego. Dane anonimowego raportu
+  pozostają w tabeli i służą wysłaniu informacji o rozstrzygnięciu.
+- Hide/unhide zmienia tylko moderation_status; CLOSED pozostaje CLOSED.
+  Block/unblock używa users.status. Block usuwa wszystkie sesje, unblock
+  ich nie odtwarza. DELETION_PENDING nie może zostać przypadkiem odblokowane.
+  Administrator nie moderuje własnego konta.
+- Każda decyzja zapisuje aktora, cel, akcję, uzasadnienie i czas.
+  Rozstrzygnięcie raportu jest odrębne od ukrycia/blokady; brak automatycznego
+  kasowania treści. Powiadomienie e-mail po commit: właściciel moderowanego
+  celu lub zgłaszający po rozstrzygnięciu. Lokalnie Mailpit; awaria wysyłki
+  nie cofa decyzji, nie ma jeszcze trwałej kolejki ponowień.
+- Roli ADMIN nie można uzyskać przez publiczne API. Właściciel nadaje ją
+  lokalnie konkretnemu UUID SQL-em. E2E wymaga E2E_SETUP_ADMIN=1, tworzy
+  nowe konto i nadaje rolę tylko jemu; finally przywraca USER, bez usuwania
+  kont, raportów i audytu. Brak konta admina z hasłem w seedzie.
