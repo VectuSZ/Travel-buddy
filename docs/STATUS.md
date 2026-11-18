@@ -433,3 +433,79 @@ Następny etap: 7. Bez commita, pushu i wdrożenia.
 Po weryfikacji zatrzymano własne serwery testowe 8082/3100. PostgreSQL,
 Mailpit i istniejące procesy autora pozostały bez zmian. Wszystkie raporty,
 uzasadnienia i audyt testów pozostają lokalnie; wolumenu nie usuwano.
+
+## Etap 7 — rozpoczęty, 2026-11-18
+
+Początkowy git status --short był pusty. Dodano fizyczne usuwanie konta
+w transakcji, endpoint POST /api/v1/auth/delete-account oraz potwierdzenie
+w panelu konta PL/EN. Zakres i decyzję dotyczącą raportów zapisano w DECISIONS.
+README zawiera ręczną weryfikację na koncie syntetycznym.
+
+Sprawdzenia: kompilacja Maven z pominięciem testów, frontend typecheck
+oraz git diff --check zaliczone. AuthResourceTest: 18/18 zaliczone na
+osobnej bazie travel_buddy_stage4_test_20261114. Pierwszą próbę blokował
+sandbox; po eskalacji poprawiono Content-Type testu i obsługę schematu
+w zapytaniach natywnych ({h-schema}). Nowy test sprawdza sesję, Origin,
+fizyczne usunięcie użytkownika i odmowę ponownego logowania.
+
+Etap 7 NIE jest ukończony. Następne zadanie: rozszerzyć test usuwania
+na pełne zależności (wyprawy, uczestnicy, kontakty, raporty), następnie
+retencja, dokumenty PL/EN, cookies, SEO i kontrola wycieków oraz pełny E2E
+z usunięciem konta i przegląd mobilny. Nie wykonano builda ani E2E UI.
+Bez commita, pushu i wdrożenia; nie usuwano wolumenów.
+
+## Etap 7A — ukończony lokalnie, 2026-11-18
+
+Zachowano istniejące niecommitowane zmiany, rozbudowując ich implementację.
+DELETE /api/v1/me wymaga sesji, CSRF/Origin i świeżego potwierdzenia hasłem
+lub tą samą tożsamością OIDC (issuer/subject/auth_time i ta sama sesja).
+Potwierdzenie ważne 300 s. UI PL/EN opisuje wpływ na uczestników.
+V12/V13: potwierdzenie w sesji i trwała kolejka z terminem ponowienia.
+DELETION_PENDING + unieważnienie sesji + zadanie zapisują się atomowo.
+Worker kasuje konto i zależności transakcyjnie, ponawia po błędzie/restartach.
+Raporty/audyt zachowują zminimalizowany przebieg sprawy; szczegóły w DECISIONS.
+Retencja ograniczona partiami, 12 miesięcy, wspólne zamykanie ręczne/automatyczne,
+Europe/Warsaw, testowy zegar CDI. Dodano odświeżanie ACTIVE po blokadach.
+
+Końcowe sprawdzenia:
+- AuthResourceTest, AccountDeletionTest, GoogleOidcTest, TripResourceTest,
+  ProfileResourceTest, ModerationTest: **55/55**, 0 błędów/pominięć;
+  osobna baza travel_buddy_stage4_test_20261114, schemat stage7a_suite;
+  destrukcyjna retencja odseparowana w privacy_test.
+- Zakres: odmowy sesji/CSRF/braku potwierdzenia, wygasanie i powiązanie sesji,
+  testowy OIDC/inny subject/brak auth_time, unieważnienie sesji/kontaktów,
+  uczestnik vs organizator, zależności w bazie, minimalizacja moderacji,
+  rollback i ponowienie, wyścig akceptacji/usunięcia, granice czasu.
+- npm run typecheck i npm run build: zaliczone po ostatniej zmianie frontendu.
+- Playwright tests/deletion.spec.ts: **2/2 PL/EN**, zbudowany Nuxt 3100,
+  backend 8082 i osobny schemat stage7a_e2e. Rejestracja/profil/wyprawa
+  przygotowane przez API; potwierdzenie hasła i usunięcie przez UI;
+  sesja 401, profil/wyprawa 404. Odczyt SQL po workerze: 0 zadań i 0 pending users.
+- git diff --check: zaliczone.
+
+W trakcie poprawiono konflikt routingu /me (DELETE umieszczony w istniejącym
+ProfileResource), whitelist proxy, izolację retencji od demo innych testów
+oraz zawodny mock zegara zastąpiony alternatywą CDI. Początkowe błędne
+przebiegi nie są zaliczone. Konta z nieudanych E2E pozostają syntetyczne
+w izolowanym schemacie; nie wykonywano masowego czyszczenia bazy.
+
+Ograniczenia: nie wykonano rzeczywistego Google — test OIDC jest lokalny;
+Google bez świeżego auth_time zostanie bezpiecznie odrzucone. Kolejka
+wznawia się z bazy; test symuluje błąd przed commit, nie zabija procesu OS.
+Retencja działa podczas pracy aplikacji. Brak produkcyjnego alarmu 7 dni,
+retencji konsoli/IDE i obsługi backupów/restore — konkretne punkty etapu 8
+w DECISIONS. Niepowiązane wzmianki w cudzych tekstach wymagają ręcznej oceny.
+
+Z etapu 6 pozostaje rzeczywisty test Cloudflare, ręczny odbiór mobilny i brak
+trwałego retry SMTP; nie blokują kasowania. Nie poszerzano tego zakresu.
+Pozostałe zadania etapu 7: dokumenty prawne PL/EN, preferencje cookies,
+końcowy przegląd SEO/i18n/wycieków i odbiór mobilny. Tylko 7A ukończony.
+Bez commita, pushu, wdrożenia i usuwania wolumenu.
+
+Próba A/B/B2/C w widocznym Chromium, schemat stage7a_trial. Pierwszy
+przebieg wykazał zajęte miejsce do czasu pracy workera. Żądanie usunięcia
+wycofuje teraz aktywne zgłoszenia uczestnika w tej samej transakcji.
+Powtórka deletion-relations.spec.ts przeszła, podobnie AccountDeletionTest.
+SQL po workerze: 0 pozostałości A/B we wszystkich dziesięciu licznikach.
+Polecenia powtórzenia oraz odczytu SQL w README. Utworzenie kont, profili
+i publikacja były przygotowaniem przez API, akceptacja, kontakty i kasowanie przez UI.

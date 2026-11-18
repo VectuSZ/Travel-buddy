@@ -12,6 +12,7 @@ import java.util.Map;
 @Path("/api/v1/auth") @Produces(MediaType.APPLICATION_JSON) @Consumes(MediaType.APPLICATION_JSON)
 public class AuthResource {
  @Inject AuthService auth;
+ @Inject AccountDeletion deletion;
  @Inject SessionService sessions;
  @Inject RateLimiter limiter;
  @Inject RoutingContext routing;
@@ -37,6 +38,8 @@ public class AuthResource {
   return Response.noContent().cookie(sessions.cookie(auth.login(r))).build();
  }
  @GET @Path("/session") public AuthDtos.Account session() { return new AuthDtos.Account(sessions.require(token()).email); }
+ @POST @Path("/reauthenticate") public Response reauthenticate(@NotNull @Valid Reauthentication input) { limiter.check("reauth:"+ip(),10,loginWindow); deletion.confirmPassword(token(),input.password()); return Response.noContent().build(); }
+ public record Reauthentication(@jakarta.validation.constraints.NotBlank @jakarta.validation.constraints.Size(max=256) String password) {}
  @POST @Path("/logout") public Response logout() { sessions.revoke(token()); return Response.noContent().cookie(sessions.cookie("")).build(); }
  @POST @Path("/password-reset/request") public Response request(@NotNull @Valid AuthDtos.ResetRequest r) {
   limiter.check("reset-ip:"+ip(),resetIp,resetWindow);

@@ -20,6 +20,7 @@ public class TripService {
  }
  void lock(User u) {
   User current=User.findById(u.id,LockModeType.PESSIMISTIC_WRITE);
+  if(current!=null) User.getEntityManager().refresh(current);
   if(current==null || !"ACTIVE".equals(current.status)) throw new AuthProblem(401,"UNAUTHENTICATED");
  }
  Trip own(User u, UUID id) {
@@ -109,7 +110,11 @@ public class TripService {
    if(!me.profileComplete())bad("PROFILE_REQUIRED");if(!me.hasContact())bad("CONTACT_REQUIRED");complete(t);
    if(Trip.count("organizerId = ?1 and publishedAt >= ?2",u.id,LocalDate.now(ZoneOffset.UTC).atStartOfDay().toInstant(ZoneOffset.UTC))>=perDay || Trip.count("organizerId = ?1 and status = 'OPEN'",u.id)>=maxOpen)throw new AuthProblem(429,"TRIP_PUBLICATION_LIMIT");
    t.status="OPEN";t.publishedAt=Instant.now();
-  } else {t.status="CLOSED";t.closedAt=Instant.now();TripApplication.update("status = 'REJECTED', decidedAt = ?1, updatedAt = ?1 where tripId = ?2 and status = 'PENDING'",t.closedAt,t.id);}
+  } else {close(t,Instant.now());}
   t.updatedAt=Instant.now();Trip.getEntityManager().flush();return view(t);
+ }
+ public static void close(Trip t,Instant now) {
+  t.status="CLOSED";t.closedAt=now;t.updatedAt=now;
+  TripApplication.update("status = 'REJECTED', decidedAt = ?1, updatedAt = ?1 where tripId = ?2 and status = 'PENDING'",now,t.id);
  }
 }

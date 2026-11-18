@@ -42,6 +42,7 @@ public class ProfileService {
  }
  void lock(User user) {
   User current=User.findById(user.id,LockModeType.PESSIMISTIC_WRITE);
+  if(current!=null) User.getEntityManager().refresh(current);
   if(current==null || !"ACTIVE".equals(current.status)) throw new AuthProblem(401,"UNAUTHENTICATED");
  }
  @Transactional public ProfileDtos.Me patch(User user,JsonNode n) {

@@ -20,7 +20,9 @@ public class ApplicationService {
  void space(Trip t){if(accepted(t.id)+1>=t.targetPeople)fail(409,"TRIP_FULL");}
  View view(TripApplication a){Trip t=Trip.findById(a.tripId);TravelerProfile p=TravelerProfile.findById(a.applicantId);return new View(a.id,a.tripId,t.title,t.organizerId,a.applicantId,p==null?"":p.displayName,a.message,a.status);}
  @Transactional public View apply(User u,UUID id,com.fasterxml.jackson.databind.JsonNode input){
-  User.findById(u.id,LockModeType.PESSIMISTIC_WRITE);
+  User applicant=User.findById(u.id,LockModeType.PESSIMISTIC_WRITE);
+  if(applicant==null)fail(401,"UNAUTHENTICATED");
+  User.getEntityManager().refresh(applicant);
   Trip t=locked(id);active(u.id);open(t);
   if(t.organizerId.equals(u.id))fail(409,"OWN_TRIP");
   if(input==null||!input.isObject()||input.size()!=1||!input.has("message")||!input.get("message").isTextual())fail(400,"INVALID_MESSAGE");
@@ -35,6 +37,12 @@ public class ApplicationService {
  @Transactional public List<View> incoming(User u,UUID id){Trip t=Trip.findById(id);if(t==null||!u.id.equals(t.organizerId))fail(404,"TRIP_NOT_FOUND");return TripApplication.<TripApplication>list("tripId = ?1 order by createdAt",id).stream().map(this::view).toList();}
  @Transactional public View decide(User u,UUID id,String action){
   TripApplication found=TripApplication.findById(id);if(found==null)fail(404,"APPLICATION_NOT_FOUND");
+  for(UUID uid:new java.util.TreeSet<>(java.util.List.of(u.id,found.applicantId))) {
+   User current=User.findById(uid,LockModeType.PESSIMISTIC_WRITE);
+   if(current==null)fail(404,"APPLICATION_NOT_FOUND");
+   User.getEntityManager().refresh(current);
+   if(!"ACTIVE".equals(current.status))fail(404,"APPLICATION_NOT_FOUND");
+  }
   Trip t=locked(found.tripId);
   TripApplication.getEntityManager().refresh(found);active(u.id);
   if(action.equals("withdraw")){

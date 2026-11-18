@@ -9,6 +9,12 @@ import java.util.UUID;
 public class ProfileResource {
  @Inject SessionService sessions;
  @Inject ProfileService profiles;
+ @Inject AccountDeletion deletion;
+ @DELETE @Path("/me") public jakarta.ws.rs.core.Response delete() {
+  var cookie=routing.request().getCookie(sessions.cookieName());
+  deletion.request(cookie==null?null:cookie.getValue());
+  return jakarta.ws.rs.core.Response.accepted().cookie(sessions.cookie("")).build();
+ }
  @Inject RoutingContext routing;
  User user() { var c=routing.request().getCookie(sessions.cookieName()); return sessions.require(c==null?null:c.getValue()); }
  @GET @Path("/me") public ProfileDtos.Me me() { return profiles.me(user()); }

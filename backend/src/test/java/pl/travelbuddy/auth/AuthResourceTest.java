@@ -22,6 +22,7 @@ class AuthResourceTest {
     @Inject RateLimiter limiter;
     @Inject MockMailbox mailbox;
     @Inject AuthCleanup cleanup;
+    @Inject DeletionWorker worker;
     String email;
     Response csrf;
 
@@ -59,6 +60,20 @@ class AuthResourceTest {
     }
     void mutateUser(java.util.function.Consumer<User> action) {
         QuarkusTransaction.requiringNew().run(() -> action.accept(User.find("email", email).firstResult()));
+    }
+    @Test void accountDeletionRequiresSessionAndRemovesAccount() {
+        request(null).delete("/api/v1/me").then().statusCode(401);
+        String token = register();
+        given().contentType("application/json").cookie("session", token).delete("/api/v1/me").then().statusCode(403);
+        session(token, 200);
+        request(token).delete("/api/v1/me").then().statusCode(403);
+        request(token).body(Map.of("password",PASSWORD)).post("/api/v1/auth/reauthenticate").then().statusCode(204);
+        request(token).delete("/api/v1/me").then().statusCode(202);
+        QuarkusTransaction.requiringNew().run(() -> assertEquals("DELETION_PENDING", ((User)User.find("email",email).firstResult()).status));
+        worker.run();
+        session(token, 401);
+        QuarkusTransaction.requiringNew().run(() -> assertEquals(0, User.count("email", email)));
+        login(email, PASSWORD).then().statusCode(401);
     }
     String resetToken() {
         request(null).body(Map.of("email",email)).post("/api/v1/auth/password-reset/request").then().statusCode(202);

@@ -280,5 +280,12 @@
     "ACTIVE": "Active",
     "BLOCKED": "Blocked",
     "DELETION_PENDING": "Deletion pending"
+  },
+  "deletion": {
+    "title": "Delete account",
+    "warning": "Account access ends immediately. We permanently delete your profile, contacts, login data, trips and all applications to them, including other participants’ messages. Your applications to other trips are also deleted. Confirm your password or the same Google identity (valid for 5 minutes). This cannot be undone.",
+    "confirm": "I confirm permanent deletion of my data",
+    "password": "Confirm current password",
+    "google": "Confirm Google identity"
   }
 }

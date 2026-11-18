@@ -19,13 +19,15 @@ class GoogleOidcTest {
  @BeforeEach void before() { limiter.clear(); email="oidc-test-"+UUID.randomUUID()+"@example.test"; sub=UUID.randomUUID().toString(); }
  @AfterEach void after() { QuarkusTransaction.requiringNew().run(()->User.delete("email",email)); }
  record Flow(Map<String,String> cookies,Map<String,String> query) {}
+ String reauthenticationSession;
  Flow start(String mode) {
   Response csrf=given().get("/api/v1/auth/csrf");
-  Response begin=given().cookies(csrf.cookies()).header("Origin","http://localhost:3000").header("X-CSRF-TOKEN",csrf.path("token"))
+  Response begin=given().cookies(csrf.cookies()).cookies(reauthenticationSession==null?Map.of():Map.of("session",reauthenticationSession)).header("Origin","http://localhost:3000").header("X-CSRF-TOKEN",csrf.path("token"))
    .contentType("application/json").body(Map.of("mode",mode,"locale","en","acceptTerms",true,"termsVersion","local-draft-1"))
    .post("/api/v1/auth/google/start");
   begin.then().statusCode(200);
   Map<String,String> cookies=new HashMap<>(begin.cookies());
+  if(reauthenticationSession!=null) cookies.put("session",reauthenticationSession);
   Response authorize=given().redirects().follow(false).cookies(cookies).get("/api/v1/auth/google/authorize");
   authorize.then().statusCode(302); cookies.putAll(authorize.cookies());
   Map<String,String> query=OidcProvider.query(URI.create(authorize.header("Location")).getRawQuery());
@@ -38,6 +40,18 @@ class GoogleOidcTest {
   claims.putAll(overrides);
   String code=OidcProvider.grant(claims,f.query.get("code_challenge"));
   return given().redirects().follow(false).cookies(f.cookies).queryParam("state",f.query.get("state")).queryParam("code",code).get("/api/v1/auth/google/callback");
+ }
+ @Test void deletionReauthenticationBindsIdentityAndSession() {
+  reauthenticationSession=finish(start("register"),Map.of()).cookie("session");
+  finish(start("reauthenticate"),Map.of("sub","different", "auth_time",Instant.now().plusSeconds(1).getEpochSecond()))
+    .then().header("Location",containsString("GOOGLE_IDENTITY_MISMATCH"));
+  finish(start("reauthenticate"),Map.of()).then().header("Location",containsString("REAUTHENTICATION_REQUIRED"));
+  finish(start("reauthenticate"),Map.of("auth_time",Instant.now().plusSeconds(1).getEpochSecond()))
+    .then().header("Location",endsWith("/en/account"));
+  QuarkusTransaction.requiringNew().run(()-> {
+   Session session=Session.find("tokenHash",Tokens.hash(reauthenticationSession)).firstResult();
+   assertNotNull(session.deletionConfirmedUntil);
+  });
  }
  @Test void newAccountAndExistingSubjectDespiteChangedEmail() {
   Response first=finish(start("register"),Map.of()); first.then().statusCode(303).header("Location",is("http://localhost:3000/en/account"));

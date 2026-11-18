@@ -341,3 +341,70 @@ kolumn umożliwiając niekompletne szkice oraz wdrożyć walidację publikacji.
   lokalnie konkretnemu UUID SQL-em. E2E wymaga E2E_SETUP_ADMIN=1, tworzy
   nowe konto i nadaje rolę tylko jemu; finally przywraca USER, bez usuwania
   kont, raportów i audytu. Brak konta admina z hasłem w seedzie.
+
+## 2026-11-18 — początek etapu 7: fizyczne usunięcie konta
+
+Usunięcie na żądanie zalogowanego użytkownika odbywa się od razu, w jednej
+transakcji, przez POST /api/v1/auth/delete-account chroniony Origin/CSRF.
+UI wymaga zaznaczenia potwierdzenia. Usuwamy własne wyprawy, aplikacje
+własne i do własnych wypraw oraz dane kaskadowo zależne od konta.
+Raporty powiązane z kontem (także decyzją moderatora) i audyt są usuwane,
+ponieważ mogą zawierać dane osobowe w tekście; nie ustanowiono wyjątku
+retencji dowodów nadużyć. Nie jest to mechanizm wyszukiwania wzmianek
+w dowolnym tekście innych użytkowników. Retencja okresowa pozostaje do realizacji.
+
+## 2026-11-18 — etap 7A: zadania usuwania i retencja
+
+Ta decyzja zastępuje wcześniejszy wariant natychmiastowego kasowania oraz
+usuwania całych powiązanych raportów. DELETE /api/v1/me wymaga aktywnej
+sesji, Origin/CSRF oraz potwierdzenia ważnego 300 sekund w tej samej sesji.
+Hasło sprawdzamy ponownie, z limitem prób. OIDC sprawdza issuer/subject
+istniejącej tożsamości, powiązanie przepływu z sesją i świeże auth_time.
+Brak auth_time lub inna tożsamość oznacza odmowę. max_age=0 żąda świeżego
+uwierzytelnienia u dostawcy; rzeczywisty Google wymaga osobnego odbioru.
+
+Żądanie atomowo ustawia DELETION_PENDING, usuwa wszystkie sesje i tworzy
+trwały deletion_jobs. Uproszczony model zadania: obecność oznacza pending,
+blokada użytkownika zastępuje RUNNING; po udanym fizycznym kasowaniu FK
+usuwa zadanie. Błąd wycofuje całą transakcję konta; next_attempt_at odsuwa
+ponowienie o godzinę. Restart nie usuwa kolejki. Worker przetwarza do 50
+kont na przebieg, co godzinę, w osobnej transakcji per konto. Wymagane
+jest działanie lokalnej aplikacji; przed produkcją potrzebny jest alarm
+na zadania starsze niż 7 dni. Nie zapisujemy danych osobowych w logu błędu.
+
+Fizycznie usuwane: użytkownik (email i hash), profil, kontakty, tożsamości,
+sesje, tokeny, jego aplikacje z wiadomościami, własne wyprawy, lokalizacje
+oraz wszystkie aplikacje do tych wypraw. FK i transakcja chronią spójność.
+Blokady i ponowny odczyt ACTIVE serializują zapis profilu/wyprawy,
+akceptację zgłoszenia oraz żądanie kasowania. Zgłoszenia do usuniętej
+wyprawy znikają z listy; istniejący otwarty widok obsługuje odpowiedź 404.
+
+Powiązane raporty (reporter/target/resolver, własna wyprawa lub zgodny email
+anonimowego reportera) tracą wszystkie identyfikatory użytkowników i celu,
+nazwę/email reportera oraz URL. Opis i uzasadnienie zastępuje [removed].
+Powiązany audyt traci identyfikatory osób/celu i całe uzasadnienie.
+Pozostają UUID sprawy/akcji, powiązanie akcji ze sprawą, kategoria, status,
+good_faith, typ akcji i daty — minimalny przebieg obsługi moderacji.
+Nie próbujemy automatycznie rozpoznawać osoby w niepowiązanych cudzych
+tekstach: takie żądanie wymaga wskazania treści i ręcznej minimalizacji.
+Zakończone raporty: 12 miesięcy od resolved_at. Audyt: 12 miesięcy od
+utworzenia decyzji/akcji. OPEN wymaga rozpatrzenia przez administratora;
+nie ustanawiamy automatycznego przedłużenia zakończonych spraw.
+
+Daty podróży interpretujemy w Europe/Warsaw. OPEN z date_to < dzisiaj
+zamyka wspólna reguła z zamykaniem ręcznym, odrzucając PENDING.
+CLOSED usuwamy dopiero gdy date_to < dzisiaj minus 12 miesięcy.
+Każda grupa porządkowania ma limit 50 rekordów. Sesje/tokeny wygasłe
+oraz tokeny zużyte sprzątane są co godzinę (częściej niż minimum w planie).
+Konfiguracja: privacy.batch-size, privacy.trip-months,
+privacy.moderation-months, privacy.cleanup-interval,
+privacy.reauthentication-seconds. Wartości domyślne: 50, 12, 12, 1h, 300.
+
+Logi: aplikacja używa konsoli, brak zarządzanego pliku i gwarancji 14 dni
+dla zapisu terminala/IDE. Etap 8 musi skonfigurować 14-dniowe wygaszanie
+logów wszystkich warstw, z wyłączeniem haseł, tokenów, kontaktów i wiadomości.
+Backupy: lokalny wolumen pozostaje; brak produkcyjnych kopii w tym etapie.
+Etap 8: 7 kopii dziennych + 4 tygodniowe (maks. ok. 35 dni), osobny minimalny
+rejestr wykonanych usunięć przez czas życia kopii i obowiązkowe ponowienie
+usunięć po restore, przed otwarciem ruchu. Bieżąca kolejka nie zastępuje
+tego rejestru. Test odtworzenia i kontroli usunięć jest bramką wdrożenia.

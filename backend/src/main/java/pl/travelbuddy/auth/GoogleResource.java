@@ -15,6 +15,7 @@ import java.util.Map;
 @Path("/api/v1/auth/google") @Produces(MediaType.APPLICATION_JSON)
 public class GoogleResource {
  @Inject GoogleAttempts attempts;
+ @Inject AccountDeletion deletion;
  @Inject GoogleAccounts accounts;
  @Inject SessionService sessions;
  @Inject RateLimiter limiter;
@@ -23,7 +24,7 @@ public class GoogleResource {
  @ConfigProperty(name="auth.google.enabled") boolean enabled;
  @ConfigProperty(name="auth.cookie-secure") boolean secure;
  @ConfigProperty(name="auth.frontend-url") String frontend;
- public record Start(@NotNull @Pattern(regexp="login|register") String mode,
+ public record Start(@NotNull @Pattern(regexp="login|register|reauthenticate") String mode,
   @NotNull @Pattern(regexp="pl|en") String locale, boolean acceptTerms, String termsVersion, String returnUrl) {}
  @GET @Path("/config") public Map<String,Boolean> config() { return Map.of("enabled",enabled); }
  @POST @Path("/start") @Consumes(MediaType.APPLICATION_JSON)
@@ -33,7 +34,12 @@ public class GoogleResource {
   boolean register=input.mode().equals("register");
   if(register && (!input.acceptTerms() || !"local-draft-1".equals(input.termsVersion()))) throw new AuthProblem(400,"GOOGLE_TERMS_REQUIRED");
   if(input.returnUrl()!=null || routing.request().getParam("returnUrl")!=null) throw new AuthProblem(400,"VALIDATION_FAILED");
-  String flow=attempts.start(input.locale(),register?"local-draft-1":null);
+  String flow;
+  if(input.mode().equals("reauthenticate")) {
+   var cookie=routing.request().getCookie(sessions.cookieName());
+   String token=cookie==null?null:cookie.getValue(); sessions.require(token);
+   flow=attempts.startReauthentication(input.locale(),token);
+  } else flow=attempts.start(input.locale(),register?"local-draft-1":null);
   return Response.ok(Map.of("url","/api/v1/auth/google/authorize")).cookie(flowCookie(flow,600)).build();
  }
  @GET @Path("/authorize") @Authenticated public Response authorize() { return result("pl","GOOGLE_FLOW_INVALID"); }
@@ -44,6 +50,16 @@ public class GoogleResource {
    var attempt=attempts.consume(cookie==null?null:cookie.getValue(),state); locale=attempt.locale();
    String sub=idToken.getSubject(), issuer=idToken.getIssuer();
    if(sub==null || sub.isBlank() || sub.length()>255 || issuer==null || issuer.length()>255) throw new AuthProblem(400,"GOOGLE_FAILED");
+   if(attempt.sessionToken()!=null) {
+    Object authenticated=idToken.getClaim("auth_time");
+    if(!(authenticated instanceof Number) || ((Number)authenticated).longValue()<attempt.acceptedAt().getEpochSecond()
+       || ((Number)authenticated).longValue()>java.time.Instant.now().plusSeconds(30).getEpochSecond())
+     throw new AuthProblem(403,"REAUTHENTICATION_REQUIRED");
+    var current=routing.request().getCookie(sessions.cookieName());
+    if(current==null || !current.getValue().equals(attempt.sessionToken())) throw new AuthProblem(403,"GOOGLE_FLOW_INVALID");
+    deletion.confirmGoogle(attempt.sessionToken(),issuer,sub); clearOidc();
+    return Response.seeOther(URI.create(frontend+(locale.equals("en")?"/en":"")+"/account")).cookie(flowCookie("",0)).build();
+   }
    String session=accounts.login(issuer,sub,idToken.getClaim("email"),Boolean.TRUE.equals(idToken.getClaim("email_verified")),attempt);
    clearOidc();
    return Response.seeOther(URI.create(frontend+(locale.equals("en")?"/en":"")+"/account")).cookie(sessions.cookie(session),flowCookie("",0)).build();

@@ -280,5 +280,12 @@
     "ACTIVE": "Aktywne",
     "BLOCKED": "Zablokowane",
     "DELETION_PENDING": "Oczekuje usunięcia"
+  },
+  "deletion": {
+    "title": "Usuń konto",
+    "warning": "Konto natychmiast utraci dostęp. Trwale usuniemy profil, kontakty, dane logowania, własne wyprawy oraz wszystkie zgłoszenia do nich, w tym wiadomości innych uczestników. Usuniemy również Twoje zgłoszenia do cudzych wypraw. Potwierdź hasło lub tę samą tożsamość Google (ważne 5 minut). Operacji nie można cofnąć.",
+    "confirm": "Potwierdzam trwałe usunięcie danych",
+    "password": "Potwierdź aktualne hasło",
+    "google": "Potwierdź tożsamość Google"
   }
 }

@@ -5,6 +5,7 @@ import java.time.Instant;
 import java.util.UUID;
 @Entity @Table(name="sessions")
 public class Session extends PanacheEntityBase {
+ @Column(name="deletion_confirmed_until") public Instant deletionConfirmedUntil;
  @Id public UUID id;
  @ManyToOne(optional=false,fetch=FetchType.LAZY) @JoinColumn(name="user_id") public User user;
  @Column(name="token_hash",nullable=false,columnDefinition="bytea") public byte[] tokenHash;

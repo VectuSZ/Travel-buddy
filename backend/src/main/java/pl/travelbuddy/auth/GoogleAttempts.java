@@ -5,7 +5,7 @@ import java.time.Instant;
 import java.util.*;
 @ApplicationScoped
 public class GoogleAttempts {
- public record Attempt(String bindingHash, String locale, String terms, Instant acceptedAt, Instant expiresAt) {}
+ public record Attempt(String bindingHash, String locale, String terms, Instant acceptedAt, Instant expiresAt, String sessionToken) { public Attempt(String bindingHash,String locale,String terms,Instant acceptedAt,Instant expiresAt) { this(bindingHash,locale,terms,acceptedAt,expiresAt,null); } }
  private final Map<String,Attempt> pending=new HashMap<>();
  private final Map<String,String> states=new HashMap<>();
  private String hash(String raw) { return HexFormat.of().formatHex(Tokens.hash(raw)); }
@@ -17,6 +17,11 @@ public class GoogleAttempts {
   clean(); if (pending.size()>=1000) throw new AuthProblem(429,"RATE_LIMITED");
   String raw=Tokens.random(), key=hash(raw);
   pending.put(key,new Attempt(key,locale,terms,terms==null?null:Instant.now(),Instant.now().plusSeconds(600)));
+  return raw;
+ }
+ public synchronized String startReauthentication(String locale,String sessionToken) {
+  String raw=start(locale,null); String key=hash(raw); Attempt a=pending.get(key);
+  pending.put(key,new Attempt(a.bindingHash(),a.locale(),a.terms(),Instant.now(),a.expiresAt(),sessionToken));
   return raw;
  }
  public synchronized void bind(String raw, String state) {

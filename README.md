@@ -741,3 +741,70 @@ przez lokalny Docker/psql. Test przywraca USER w finally; dane i audyt
 zostają. Bez flagi test jest pomijany, co nie oznacza zaliczenia.
 Nie uruchamiaj go przeciw innemu środowisku. Użycie lokalnego pliku
 Playwright zapobiega przypadkowemu użyciu innej wersji przez npx.
+
+Usuwanie konta (początek etapu 7): na stronie konta zaznacz potwierdzenie
+trwałego usunięcia i wybierz „Usuń konto” / „Delete account”. Sprawdzaj
+wyłącznie na koncie testowym: operacja fizycznie usuwa dane bez możliwości
+cofnięcia. Po operacji dotychczasowa sesja i logowanie przestają działać.
+Test API: `./scripts/backend.sh test -Dtest=AuthResourceTest`
+z parametrem `-Dquarkus.datasource.jdbc.url=...` wskazującym osobną bazę testową.
+
+### Etap 7A — odbiór usuwania i retencji
+
+Poprzedni opis natychmiastowego kasowania zastępuje przepływ:
+ustawienia konta → aktualne hasło (lub ponowne logowanie tą samą tożsamością
+Google) → zaznaczenie potwierdzenia → „Usuń konto”. Potwierdzenie wygasa
+po 5 minutach i działa tylko w bieżącej sesji. DELETE /api/v1/me zwraca 202;
+konto natychmiast traci wszystkie sesje, publiczny profil/wyprawy i dostęp
+do kontaktów. Zadanie fizycznego usunięcia jest trwałe i działa co godzinę.
+
+Sprawdzaj wyłącznie na nowych kontach testowych A/B: utwórz profile,
+wyprawę A, zgłoszenie B i zaakceptuj je. Usunięcie B odbiera kontakty,
+ale zachowuje wyprawę A. W osobnym przebiegu usunięcie A usuwa wyprawę
+i zgłoszenia do niej. Po odświeżeniu panelu B zgłoszenia nie ma.
+Sprawdź też drugą otwartą sesję usuwanego konta oraz publiczne URL-e (404).
+Nie używaj rzeczywistego konta Google do próby fizycznego kasowania.
+Ręczny odbiór Google wymaga zgody właściciela testowej tożsamości:
+inna tożsamość oraz brak świeżego auth_time muszą zostać odrzucone.
+Testowy OIDC nie potwierdza zachowania rzeczywistego Google.
+
+Weryfikacja na osobnej bazie (schemat privacy_test izoluje destrukcyjne testy retencji):
+
+```sh
+./scripts/backend.sh test -Dtest=AuthResourceTest,AccountDeletionTest,GoogleOidcTest,TripResourceTest,ProfileResourceTest,ModerationTest -Dquarkus.datasource.jdbc.url=jdbc:postgresql://127.0.0.1:5433/travel_buddy_stage4_test_20261114 -Dquarkus.flyway.schemas=stage7a_suite -Dquarkus.hibernate-orm.database.default-schema=stage7a_suite
+cd frontend
+npm run typecheck
+npm run build
+E2E_BASE_URL=http://localhost:3100 ./node_modules/.bin/playwright test tests/deletion.spec.ts
+```
+
+Dla E2E uruchom backend 8082 i frontend 3100 według wcześniejszej instrukcji,
+ale dopisz backendowi URL powyższej osobnej bazy, `-Dquarkus.flyway.schemas=stage7a_e2e`
+i `-Dquarkus.hibernate-orm.database.default-schema=stage7a_e2e`.
+Opcjonalne `-Dprivacy.cleanup-interval=5s` przyspiesza worker tylko na czas
+odbioru w izolowanym schemacie. Nie używaj tej konfiguracji na danych autora.
+Zakres minimalizacji raportów, okresy i zależności od działania aplikacji
+opisano w docs/DECISIONS.md. Logi terminala i backupy nie mają automatycznej
+retencji w tym lokalnym środowisku; konkretne wymagania zapisano do etapu 8.
+
+Do powtórzenia pełnej próby A/B/B2/C użyj schematu `stage7a_trial`
+zamiast `stage7a_e2e` w obu parametrach backendu. Worker co 5 s ułatwia
+obserwację fizycznego usunięcia. Widoczny Chromium uruchom z katalogu frontend:
+
+```sh
+E2E_BASE_URL=http://localhost:3100 ./node_modules/.bin/playwright test tests/deletion-relations.spec.ts --headed
+```
+
+Test tworzy trzy konta i drugą sesję B. Wypisuje publiczne adresy profili
+w kolejności A, B, C oraz adres i UUID wyprawy. Po zakończeniu workera
+uruchom z głównego katalogu (podstaw UUID z własnej próby):
+
+```sh
+docker compose exec -T postgres sh -c 'exec psql -v ON_ERROR_STOP=1 -U "$POSTGRES_USER" -d travel_buddy_stage4_test_20261114 "$@"' sh -v a=UUID_A -v b=UUID_B -v c=UUID_C -v trip=UUID_WYPRAWY < docs/VERIFY-7A.sql
+```
+
+Wszystkie liczniki pierwszego wyniku powinny wynosić 0, a active_c_should_be_one
+powinien wynosić 1. Raporty i audyt sprawdza osobny AccountDeletionTest
+z kontrolowanym zegarem. W ręcznym odbiorze najpierw zapisz publiczne URL-e
+i upewnij się, że otwierają się anonimowo. Ustaw limit dwóch osób łącznie
+z organizatorem, aby zgłoszenie C po usunięciu B sprawdzało odzyskanie miejsca.
