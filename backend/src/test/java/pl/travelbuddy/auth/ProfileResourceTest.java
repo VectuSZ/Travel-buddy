@@ -19,7 +19,7 @@ class ProfileResourceTest {
  @BeforeEach void setup() {
   limiter.clear(); email="profile-test-"+UUID.randomUUID()+"@example.test";
   csrf=given().get("/api/v1/auth/csrf");
-  session=write().body(Map.of("email",email,"password","Long profile password 123!","passwordConfirmation","Long profile password 123!","locale","pl","acceptTerms",true,"termsVersion","local-draft-1")).post("/api/v1/auth/register").then().statusCode(201).extract().cookie("session");
+  session=write().body(Map.of("email",email,"password","Long profile password 123!","passwordConfirmation","Long profile password 123!","locale","pl","acceptTerms",true,"termsVersion","local-draft-2")).post("/api/v1/auth/register").then().statusCode(201).extract().cookie("session");
   id=me().path("userId");
  }
  @AfterEach void cleanup() { QuarkusTransaction.requiringNew().run(()->User.delete("email",email)); }

@@ -4,6 +4,9 @@ test('report by A, ADMIN hides trip, anonymous 404',async({browser})=>{
  test.skip(process.env.E2E_SETUP_ADMIN!=='1','Requires explicit local test admin setup')
  const base=process.env.E2E_BASE_URL||'http://localhost:3000',stamp=Date.now()
  let adminId=''
+ const psql=process.env.E2E_STAGE7B==='1'
+  ? 'PGOPTIONS="-c search_path=stage7b_e2e" psql -v ON_ERROR_STOP=1 -U "$POSTGRES_USER" -d travel_buddy_stage4_test_20261114'
+  : 'psql -v ON_ERROR_STOP=1 -U "$POSTGRES_USER" -d "$POSTGRES_DB"'
  const contexts=await Promise.all([browser.newContext({baseURL:base}),browser.newContext({baseURL:base}),browser.newContext({baseURL:base})])
  try{
   async function write(i:number,url:string,data:object,method='POST'){
@@ -11,7 +14,7 @@ test('report by A, ADMIN hides trip, anonymous 404',async({browser})=>{
    return r.fetch(url,{method,data,headers:{Origin:base,'X-CSRF-TOKEN':csrf.token}})
   }
   for(let i=0;i<2;i++){
-   expect((await write(i,'/api/v1/auth/register',{email:'mod-'+stamp+'-'+i+'@example.test',password:'Long moderation test password 123!',passwordConfirmation:'Long moderation test password 123!',locale:'pl',acceptTerms:true,termsVersion:'local-draft-1'})).status()).toBe(201)
+   expect((await write(i,'/api/v1/auth/register',{email:'mod-'+stamp+'-'+i+'@example.test',password:'Long moderation test password 123!',passwordConfirmation:'Long moderation test password 123!',locale:'pl',acceptTerms:true,termsVersion:'local-draft-2'})).status()).toBe(201)
    await write(i,'/api/v1/me/profile',{version:0,displayName:'Moderation tester '+i,age:30,languages:['pl'],travelStyles:['trekking']},'PATCH')
    await write(i,'/api/v1/me/contacts',{contactEmail:'secret-mod-'+stamp+'@example.test'},'PUT')
   }
@@ -19,10 +22,20 @@ test('report by A, ADMIN hides trip, anonymous 404',async({browser})=>{
   adminId=admin.userId
   expect(admin.userId).toMatch(/^[0-9a-f-]{36}$/)
   // Promote only this freshly registered fixture, never an existing account.
-  execFileSync('docker',['compose','exec','-T','postgres','sh','-c','psql -v ON_ERROR_STOP=1 -U "$POSTGRES_USER" -d "$POSTGRES_DB"'],{cwd:'..',input:"UPDATE users SET role='ADMIN' WHERE id='"+admin.userId+"' AND email='mod-"+stamp+"-1@example.test';",stdio:['pipe','pipe','pipe']})
+  execFileSync('docker',['compose','exec','-T','postgres','sh','-c',psql],{cwd:'..',input:"UPDATE users SET role='ADMIN' WHERE id='"+admin.userId+"' AND email='mod-"+stamp+"-1@example.test';",stdio:['pipe','pipe','pipe']})
   const trip=await (await write(0,'/api/v1/trips',{title:'Reported trip '+stamp,itinerary:'Travel plan',lookingFor:'People',contentLanguage:'pl',dateMode:'EXACT',dateFrom:'2027-08-01',dateTo:'2027-08-03',targetPeople:4,budgetMin:100,budgetMax:500,styles:['trekking'],locations:[{countryCode:'PL'}]})).json()
-  expect((await write(0,'/api/v1/trips/'+trip.id+'/publish',{version:trip.version})).status()).toBe(200)
+  const sitemap=async()=> (await contexts[2]!.request.get('/sitemap.xml')).text()
+  expect(await sitemap()).not.toContain(trip.id)
+  const publication=await write(0,'/api/v1/trips/'+trip.id+'/publish',{version:trip.version})
+  expect(publication.status()).toBe(200)
+  const published=await publication.json()
+  const closed=await write(0,'/api/v1/trips/'+trip.id+'/close',{version:published.version})
+  expect(closed.status()).toBe(200)
+  const closedPage=await contexts[2]!.request.get('/pl/wyprawy/'+trip.id+'/'+published.slug)
+  expect(closedPage.status()).toBe(200)
+  expect(await closedPage.text()).toContain('Zamknięta')
   const a=await contexts[0]!.newPage(),moderator=await contexts[1]!.newPage(),anonymous=await contexts[2]!.newPage()
+  expect(await (await anonymous.request.get('/sitemap.xml')).text()).toContain(trip.id)
   await a.goto('/trips/'+trip.id)
   await a.getByRole('link',{name:'Zgłoś',exact:true}).click()
   await a.locator('[name=category]').selectOption('SPAM')
@@ -38,9 +51,10 @@ test('report by A, ADMIN hides trip, anonymous 404',async({browser})=>{
   await expect(report).toBeVisible()
   await report.locator('[name=reason]').fill('Reviewed: spam content')
   await report.getByRole('button',{name:'Ukryj wyprawę'}).click()
-  await expect(moderator.getByRole('status')).toContainText('Zapisano')
+  await expect(moderator.getByRole('status').filter({hasText:'Zapisano'})).toBeVisible()
   await report.getByRole('button',{name:'Rozstrzygnij',exact:true}).click()
   await expect(report).toHaveCount(0)
+  expect(await (await anonymous.request.get('/sitemap.xml')).text()).not.toContain(trip.id)
   await anonymous.goto('/pl/wyprawy?country=PL')
   await expect(anonymous.locator('main')).not.toContainText('Reported trip '+stamp)
   const response=await anonymous.goto('/trips/'+trip.id)
@@ -70,7 +84,7 @@ test('report by A, ADMIN hides trip, anonymous 404',async({browser})=>{
   await moderator.goto('/en/moderation')
   await expect(moderator.getByRole('heading',{name:'Moderation',exact:true})).toBeVisible()
  }finally{
-  if(/^[0-9a-f-]{36}$/.test(adminId))execFileSync('docker',['compose','exec','-T','postgres','sh','-c','psql -v ON_ERROR_STOP=1 -U "$POSTGRES_USER" -d "$POSTGRES_DB"'],{cwd:'..',input:"UPDATE users SET role='USER' WHERE id='"+adminId+"' AND email='mod-"+stamp+"-1@example.test';",stdio:['pipe','pipe','pipe']})
+  if(/^[0-9a-f-]{36}$/.test(adminId))execFileSync('docker',['compose','exec','-T','postgres','sh','-c',psql],{cwd:'..',input:"UPDATE users SET role='USER' WHERE id='"+adminId+"' AND email='mod-"+stamp+"-1@example.test';",stdio:['pipe','pipe','pipe']})
   await Promise.all(contexts.map(c=>c.close()))
  }
 })

@@ -408,3 +408,16 @@ Etap 8: 7 kopii dziennych + 4 tygodniowe (maks. ok. 35 dni), osobny minimalny
 rejestr wykonanych usunięć przez czas życia kopii i obowiązkowe ponowienie
 usunięć po restore, przed otwarciem ruchu. Bieżąca kolejka nie zastępuje
 tego rejestru. Test odtworzenia i kontroli usunięć jest bramką wdrożenia.
+
+## 2026-11-19 — lokalne dokumenty, cookies i indeksowanie
+
+Rozszerzonemu regulaminowi nadano wersję local-draft-2. Nowe rejestracje
+hasłem i Google wymagają tej wersji. Historyczne akceptacje zachowują
+dotychczasową wartość. Link do polityki jest osobny od checkboxa regulaminu.
+Lista opcjonalnych integracji jest pusta. Ustawienia stają się aktywne
+po dodaniu integracji, której loader musi respektować zgodę i jej cofnięcie.
+
+Mapa witryny pobiera wyłącznie ID, slug, język treści i datę aktualizacji
+widocznych OPEN/CLOSED aktywnych autorów. CLOSED pozostaje kanonicznym
+publicznym zasobem do usunięcia przez retencję. Odpowiedź mapy ma no-store.
+Listy PL/EN i strony informacyjne mają własne canonical i hreflang.

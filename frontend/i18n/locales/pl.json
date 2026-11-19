@@ -51,7 +51,9 @@
       "GOOGLE_EMAIL_CONFLICT": "Konto z tym adresem już istnieje. Zaloguj się dotychczasową metodą lub odzyskaj hasło. Konta nie zostały połączone.",
       "GOOGLE_REGISTRATION_REQUIRED": "Najpierw przejdź do rejestracji i zaakceptuj regulamin.",
       "GOOGLE_FLOW_INVALID": "Próba logowania wygasła lub została zastąpiona. Rozpocznij ponownie.",
-      "GOOGLE_TERMS_REQUIRED": "Zaakceptuj aktualny regulamin."
+      "GOOGLE_TERMS_REQUIRED": "Zaakceptuj aktualny regulamin.",
+      "GOOGLE_IDENTITY_MISMATCH": "Wybierz to samo konto Google, którym logujesz się do Travel Buddy.",
+      "REAUTHENTICATION_REQUIRED": "Potwierdź ponownie swoją tożsamość Google."
     }
   },
   "profile": {
@@ -287,5 +289,25 @@
     "confirm": "Potwierdzam trwałe usunięcie danych",
     "password": "Potwierdź aktualne hasło",
     "google": "Potwierdź tożsamość Google"
+  },
+  "legal": {
+    "privacy": "Polityka prywatności",
+    "cookies": "Ustawienia cookies",
+    "intro": "Projekt do lokalnych testów.",
+    "operator": "Administrator: [nazwa i adres]. Kontakt w sprawach danych, skarg i decyzji moderacyjnych: [adres kontaktowy]. Dostawcy produkcyjni: [do uzupełnienia].",
+    "service": "Travel Buddy ułatwia dorosłym publikowanie wypraw i szukanie współtowarzyszy. Uczestnicy sami uzgadniają warunki podróży i dbają o swoje bezpieczeństwo. Serwis nie weryfikuje tożsamości podróżnych ani nie organizuje wyjazdów.",
+    "conduct": "Publikuj treści, do których masz prawa. Nie podawaj w publicznych opisach prywatnych kontaktów. Zabronione są treści bezprawne, nękanie, podszywanie się i spam.",
+    "reports": "Treść profilu lub wyprawy możesz zgłosić także bez konta przez link „Zgłoś”. Wskaż przyczynę i opisz problem. Administrator może ukryć wyprawę lub zablokować konto i zapisać uzasadnienie decyzji.",
+    "public": "Publiczne są pola profilu podróżnika, opublikowana wyprawa i lista zaakceptowanych uczestników. Każdy może otworzyć ich publiczne adresy.",
+    "private": "W celu obsługi konta i wypraw przetwarzamy e-mail logowania, hash hasła lub identyfikator Google, sesje i zgłoszenia. Wiadomość widzą zgłaszający i organizator. Po akceptacji oboje mogą zobaczyć wzajemne kontakty. Wycofanie zgłoszenia odbiera ten dostęp.",
+    "deletion": "W ustawieniach konta potwierdź hasło lub tożsamość Google i wybierz usunięcie. Wszystkie sesje tracą dostęp, profil i wyprawy znikają publicznie. Zadanie w działającej aplikacji usuwa konto, kontakty, identyfikatory, tokeny, własne wyprawy i powiązane zgłoszenia wraz z wiadomościami. Po błędzie zadanie zostaje ponowione.",
+    "retention": "Wygasłe sesje i tokeny są sprzątane co godzinę. Po dniu końca wyprawy (Europe/Warsaw) zamykamy nabór. Zamknięte wyprawy i zgłoszenia usuwamy po 12 miesiącach od końca podróży. Po usunięciu konta powiązane sprawy moderacyjne tracą dane identyfikujące i tekst. Metadane zakończonych raportów i audyt przechowujemy przez 12 miesięcy od decyzji lub akcji. Otwarte raporty czekają na rozpatrzenie.",
+    "rights": "Obsługa konta i wypraw służy wykonaniu umowy, a bezpieczeństwo i moderacja ochronie użytkowników (uzasadniony interes). O dostęp, kopię, sprostowanie, usunięcie, ograniczenie, przeniesienie danych lub sprzeciw możesz wystąpić do administratora. Możesz też złożyć skargę do organu nadzorczego. Lokalnie poczta trafia do Mailpit. Google jest używane przy logowaniu przez Google.",
+    "necessary": "Lokalnie session utrzymuje logowanie do 7 dni, a csrf-token chroni operacje zmieniające dane. Przy logowaniu Google krótkotrwałe google-flow i ciasteczko stanu OIDC wiążą odpowiedź z rozpoczętym logowaniem. Po obsłudze odpowiedzi aplikacja usuwa q_session.",
+    "essential": "Działają tylko mechanizmy niezbędne. Nie używamy reklam ani analityki marketingowej. Nie musisz dokonywać wyboru.",
+    "optional": "Technologie opcjonalne",
+    "allow": "Zezwól na opcjonalne",
+    "deny": "Odrzuć opcjonalne",
+    "list": "Znajdź wyprawę i poznaj osoby, które szukają współtowarzyszy podróży."
   }
 }

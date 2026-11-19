@@ -24,7 +24,7 @@ test('pagination, copied SSR, validation and metadata',async({page,request})=>{
   const r=await request.get(url,{maxRedirects:0});expect(r.status()).toBe(301)
  }
  const detail=await (await request.get('/en/trips/'+demo+'/weekend-w-tatrach')).text()
- expect(detail).toContain('href="http://localhost:3000/pl/wyprawy/'+demo+'/weekend-w-tatrach"')
+ expect(detail).toContain('href="'+(process.env.E2E_BASE_URL||'http://localhost:3000')+'/pl/wyprawy/'+demo+'/weekend-w-tatrach"')
  expect(detail).toContain('name="description"')
  expect(detail).toContain('lang="pl"')
  const invalid=await request.get('/pl/wyprawy?budgetMin=2500&budgetMax=2200')

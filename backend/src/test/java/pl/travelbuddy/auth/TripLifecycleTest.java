@@ -17,7 +17,7 @@ class TripLifecycleTest {
  String register(){
   String email="trip-"+UUID.randomUUID()+"@example.test";emails.add(email);
   return given().contentType("application/json").cookies(csrf.cookies()).header("Origin","http://localhost:3000").header("X-CSRF-TOKEN",csrf.path("token"))
-   .body(Map.of("email",email,"password","Long trip password 123!","passwordConfirmation","Long trip password 123!","locale","pl","acceptTerms",true,"termsVersion","local-draft-1"))
+   .body(Map.of("email",email,"password","Long trip password 123!","passwordConfirmation","Long trip password 123!","locale","pl","acceptTerms",true,"termsVersion","local-draft-2"))
    .post("/api/v1/auth/register").then().statusCode(201).extract().cookie("session");
  }
  @BeforeEach void setup(){limiter.clear();csrf=given().get("/api/v1/auth/csrf");session=register();owner=given().cookie("session",session).get("/api/v1/me").path("userId");}

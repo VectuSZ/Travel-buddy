@@ -6,7 +6,7 @@ for (const locale of ['pl','en']) test(`account deletion ${locale}`,async({page,
   const csrf=await (await context.request.get('/api/v1/auth/csrf')).json()
   return context.request.fetch(url,{method,data,headers:{Origin:base,'X-CSRF-TOKEN':csrf.token}})
  }
- expect((await write('/api/v1/auth/register',{email,password,passwordConfirmation:password,locale,acceptTerms:true,termsVersion:'local-draft-1'})).status()).toBe(201)
+ expect((await write('/api/v1/auth/register',{email,password,passwordConfirmation:password,locale,acceptTerms:true,termsVersion:'local-draft-2'})).status()).toBe(201)
  expect((await write('/api/v1/me/profile',{version:0,displayName:'Deletion fixture',age:30,languages:['pl'],travelStyles:['trekking']},'PATCH')).status()).toBe(200)
  expect((await write('/api/v1/me/contacts',{contactEmail:email},'PUT')).status()).toBe(200)
  const user=await (await context.request.get('/api/v1/me')).json()

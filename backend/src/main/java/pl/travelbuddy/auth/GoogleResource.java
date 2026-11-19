@@ -32,14 +32,14 @@ public class GoogleResource {
   if(!enabled) throw new AuthProblem(503,"GOOGLE_DISABLED");
   limiter.check("google:"+routing.request().remoteAddress().hostAddress(),10,Duration.ofMinutes(15));
   boolean register=input.mode().equals("register");
-  if(register && (!input.acceptTerms() || !"local-draft-1".equals(input.termsVersion()))) throw new AuthProblem(400,"GOOGLE_TERMS_REQUIRED");
+  if(register && (!input.acceptTerms() || !"local-draft-2".equals(input.termsVersion()))) throw new AuthProblem(400,"GOOGLE_TERMS_REQUIRED");
   if(input.returnUrl()!=null || routing.request().getParam("returnUrl")!=null) throw new AuthProblem(400,"VALIDATION_FAILED");
   String flow;
   if(input.mode().equals("reauthenticate")) {
    var cookie=routing.request().getCookie(sessions.cookieName());
    String token=cookie==null?null:cookie.getValue(); sessions.require(token);
    flow=attempts.startReauthentication(input.locale(),token);
-  } else flow=attempts.start(input.locale(),register?"local-draft-1":null);
+  } else flow=attempts.start(input.locale(),register?"local-draft-2":null);
   return Response.ok(Map.of("url","/api/v1/auth/google/authorize")).cookie(flowCookie(flow,600)).build();
  }
  @GET @Path("/authorize") @Authenticated public Response authorize() { return result("pl","GOOGLE_FLOW_INVALID"); }

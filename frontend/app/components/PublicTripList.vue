@@ -12,7 +12,8 @@ const {data,status,error}=await useFetch<TripResults>('/api/v1/trips',{query})
 if(error.value&&import.meta.server)setResponseStatus(error.value.statusCode===400?400:502)
 async function apply(){await navigateTo({path:route.path,query:Object.fromEntries(keys.filter(k=>form[k]).map(k=>[k,form[k]]))})}
 function pageLink(page:number){return {path:route.path,query:{...route.query,page:String(page)}}}
-useHead({title:()=>t('trips')+' — Travel Buddy',meta:()=>[{name:'robots',content:Object.keys(route.query).length?'noindex,follow':'index,follow'}]})
+usePublicHead('trips','legal.list','/pl/wyprawy','/en/trips')
+useHead({meta:()=>[{name:'robots',content:Object.keys(route.query).length?'noindex,follow':'index,follow'}]})
 </script>
 <template>
 <h1>{{ t('trips') }}</h1>

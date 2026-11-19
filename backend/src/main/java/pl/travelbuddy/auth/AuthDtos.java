@@ -7,7 +7,7 @@ public final class AuthDtos {
   @NotNull @Size(min=12,max=1024) String password,
   @NotNull @Size(min=12,max=1024) String passwordConfirmation,
   @NotNull @Pattern(regexp="pl|en") String locale,
-  @AssertTrue boolean acceptTerms, @NotNull @Pattern(regexp="local-draft-1") String termsVersion) {}
+  @AssertTrue boolean acceptTerms, @NotNull @Pattern(regexp="local-draft-2") String termsVersion) {}
  public record Login(@NotBlank @Email @Size(max=254) String email, @NotNull @Size(min=12,max=1024) String password) {}
  public record ResetRequest(@NotBlank @Email @Size(max=254) String email) {}
  public record ResetConfirm(@NotNull @Pattern(regexp="[A-Za-z0-9_-]{43}") String token,

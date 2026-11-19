@@ -51,7 +51,9 @@
       "GOOGLE_EMAIL_CONFLICT": "An account with this email already exists. Use your previous sign-in method or reset your password. No accounts were linked.",
       "GOOGLE_REGISTRATION_REQUIRED": "Go to registration and accept the terms first.",
       "GOOGLE_FLOW_INVALID": "This sign-in attempt expired or was replaced. Start again.",
-      "GOOGLE_TERMS_REQUIRED": "Accept the current terms."
+      "GOOGLE_TERMS_REQUIRED": "Accept the current terms.",
+      "GOOGLE_IDENTITY_MISMATCH": "Choose the same Google account you use for Travel Buddy.",
+      "REAUTHENTICATION_REQUIRED": "Confirm your Google identity again."
     }
   },
   "profile": {
@@ -287,5 +289,25 @@
     "confirm": "I confirm permanent deletion of my data",
     "password": "Confirm current password",
     "google": "Confirm Google identity"
+  },
+  "legal": {
+    "privacy": "Privacy policy",
+    "cookies": "Cookie settings",
+    "intro": "Draft for local testing.",
+    "operator": "Controller: [name and address]. Contact for privacy requests, complaints and moderation decisions: [contact address]. Production providers: [to be completed].",
+    "service": "Travel Buddy helps adults publish trips and find travel companions. Participants arrange their own travel and are responsible for their safety. The service does not verify travelers’ identities or organize trips.",
+    "conduct": "Share content you have the right to publish. Keep private contact details out of public descriptions. Unlawful content, harassment, impersonation and spam are prohibited.",
+    "reports": "Use Report on a profile or trip, even without an account. Choose a reason and describe the issue. An administrator can hide trips or block accounts and record the reason for the decision.",
+    "public": "Traveler profile fields, published trips and lists of accepted participants are public. Anyone can open their public URLs.",
+    "private": "To operate accounts and trips we process login emails, password hashes or Google identifiers, sessions and applications. Applicants and organizers can read the application message. After acceptance they can see each other’s contact details. Withdrawal ends that access.",
+    "deletion": "In account settings confirm your password or Google identity and request deletion. All sessions lose access and your profile and trips disappear from public view. While the app is running, a background job deletes the account, contacts, identities, tokens, owned trips and related applications including messages. Failed jobs are retried.",
+    "retention": "Expired sessions and tokens are cleaned hourly. Applications close after the last trip day (Europe/Warsaw). Closed trips and their applications are deleted 12 months after the trip ends. Account deletion removes identifiers and free text from related moderation records. Closed report metadata and audit records are kept for 12 months from the decision or action. Open reports await review.",
+    "rights": "We process account and trip data to perform the service contract. Security and moderation protect users (legitimate interest). Contact the controller to request access, a copy, correction, erasure, restriction or portability, or to object. You can also complain to a supervisory authority. Local email goes to Mailpit. Google is used for Google sign-in.",
+    "necessary": "Locally, session keeps you signed in for up to seven days and csrf-token protects requests that change data. During Google sign-in, short-lived google-flow and an OIDC state cookie bind the response to the sign-in attempt. The app clears q_session after handling the response.",
+    "essential": "Only essential technologies are active. We use no advertising or marketing analytics. No choice is required.",
+    "optional": "Optional technologies",
+    "allow": "Allow optional technologies",
+    "deny": "Reject optional technologies",
+    "list": "Find a trip and meet travelers looking for companions."
   }
 }

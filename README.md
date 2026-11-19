@@ -129,7 +129,7 @@ backend porównuje Origin z dokładnym zaufanym adresem frontendu.
 ## Ręczna weryfikacja kont
 
 1. Otwórz Rejestracja, podaj testowy e-mail, hasło (12–1024 znaków),
-   potwierdź je i zaakceptuj lokalny regulamin roboczy local-draft-1.
+   potwierdź je i zaakceptuj lokalny regulamin roboczy local-draft-2.
    Po rejestracji ekran konta pokazuje wyłącznie własny e-mail i wylogowanie.
 2. Wyloguj się, zaloguj ponownie (wielkość liter w e-mailu nie ma znaczenia).
    Lista i szczegóły wypraw działają także bez logowania.
@@ -808,3 +808,30 @@ powinien wynosić 1. Raporty i audyt sprawdza osobny AccountDeletionTest
 z kontrolowanym zegarem. W ręcznym odbiorze najpierw zapisz publiczne URL-e
 i upewnij się, że otwierają się anonimowo. Ustaw limit dwóch osób łącznie
 z organizatorem, aby zgłoszenie C po usunięciu B sprawdzało odzyskanie miejsca.
+
+### Lokalny odbiór etapu 7B
+
+W katalogu projektu uruchom PostgreSQL i backend. Poniższe polecenia
+korzystają z istniejącej osobnej bazy testowej etapu 7A.
+
+```sh
+docker compose up -d
+./scripts/backend.sh quarkus:dev -Dquarkus.http.port=8084 -Dauth.frontend-url=http://localhost:3104 -Dauth.google.enabled=false -Dauth.rate.register-ip=40 -Ddebug=false -Dquarkus.datasource.jdbc.url=jdbc:postgresql://127.0.0.1:5433/travel_buddy_stage4_test_20261114 -Dquarkus.flyway.schemas=stage7b_e2e -Dquarkus.hibernate-orm.database.default-schema=stage7b_e2e -Dprivacy.cleanup-interval=5s
+```
+
+W drugim terminalu uruchom zbudowaną aplikację:
+
+```sh
+cd frontend
+npm run typecheck && npm run build
+PORT=3104 NUXT_BACKEND_URL=http://127.0.0.1:8084 NUXT_PUBLIC_SITE_URL=http://localhost:3104 node .output/server/index.mjs
+```
+
+1. Otwórz http://localhost:3104/register i oba dokumenty. Na telefonie sprawdź czytelność tekstu, stopki i przełącznika PL/EN. Wersja przy checkboxie to local-draft-2.
+2. Ze stopki przejdź do ustawień cookies i przełącz język. Przy samych mechanizmach niezbędnych strona nie wymaga decyzji.
+3. Otwórz /sitemap.xml i /robots.txt. W źródle szczegółów wyprawy porównaj canonical po zmianie języka interfejsu. Dla filtrowanej listy sprawdź noindex,follow.
+4. Automatyczny odbiór ze świeżym procesem backendu (limit raportów 5/h), w katalogu frontend:
+
+```sh
+E2E_BASE_URL=http://localhost:3104 E2E_SETUP_ADMIN=1 E2E_STAGE7B=1 ./node_modules/.bin/playwright test tests/legal.spec.ts tests/search.spec.ts tests/deletion-relations.spec.ts tests/moderation.spec.ts tests/deletion.spec.ts
+```

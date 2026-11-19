@@ -26,7 +26,7 @@ async function google() {
   busy.value = true
   errorCode.value = ''
   try {
-    const result = await post('google/start', { mode: props.mode, locale: locale.value, acceptTerms: accepted.value, termsVersion: 'local-draft-1' }) as { url: string }
+    const result = await post('google/start', { mode: props.mode, locale: locale.value, acceptTerms: accepted.value, termsVersion: 'local-draft-2' }) as { url: string }
     window.location.assign(result.url)
   } catch { errorCode.value = 'UNKNOWN'; busy.value = false }
 }
@@ -37,7 +37,7 @@ async function submit() {
   try {
     if (props.mode === 'register') {
       await post('register', { email: email.value, password: password.value, passwordConfirmation: confirmation.value,
-        locale: locale.value, acceptTerms: accepted.value, termsVersion: 'local-draft-1' })
+        locale: locale.value, acceptTerms: accepted.value, termsVersion: 'local-draft-2' })
     } else if (props.mode === 'login') await post('login', { email: email.value, password: password.value })
     else if (props.mode === 'forgot') await post('password-reset/request', { email: email.value })
     else await post('password-reset/confirm', { token, password: password.value, passwordConfirmation: confirmation.value })
@@ -58,7 +58,7 @@ async function submit() {
     <label v-if="mode !== 'forgot'">{{ t('auth.password') }}<input v-model="password" type="password" name="password" :autocomplete="newPassword ? 'new-password' : 'current-password'" minlength="12" maxlength="1024" required></label>
     <p v-if="newPassword">{{ t('auth.passwordHint') }}</p>
     <label v-if="newPassword">{{ t('auth.confirmation') }}<input v-model="confirmation" type="password" name="confirmation" autocomplete="new-password" minlength="12" maxlength="1024" required></label>
-    <label v-if="mode === 'register'" class="checkbox"><input v-model="accepted" type="checkbox" required> {{ t('auth.accept') }} <NuxtLink :to="localePath('/terms')" target="_blank">{{ t('auth.terms') }}</NuxtLink> (local-draft-1)</label>
+    <label v-if="mode === 'register'" class="checkbox"><input v-model="accepted" type="checkbox" required> {{ t('auth.accept') }} <NuxtLink :to="localePath('/terms')" target="_blank">{{ t('auth.terms') }}</NuxtLink> (local-draft-2)</label><NuxtLink v-if="mode === 'register'" :to="localePath('/privacy')">{{ t('legal.privacy') }}</NuxtLink>
     <p v-if="errorCode" role="alert">{{ t('auth.errors.' + errorCode) }}</p>
     <button type="submit" :disabled="busy">{{ busy ? t('loading') : t('auth.' + mode) }}</button>
     <button v-if="googleEnabled" type="button" :disabled="busy || (mode === 'register' && !accepted)" @click="google">{{ t('google.continue') }}</button>

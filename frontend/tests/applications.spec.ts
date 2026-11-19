@@ -11,7 +11,7 @@ for(const lang of ['pl','en']){
     return request.fetch(url,{method,data,headers:{Origin:process.env.E2E_BASE_URL||'http://localhost:3000','X-CSRF-TOKEN':csrf.token}})
    }
    for(let i=0;i<3;i++){
-    const register=await write(i,'/api/v1/auth/register',{email:'application-'+stamp+'-'+i+'@example.test',password:'Long application password 123!',passwordConfirmation:'Long application password 123!',locale:lang,acceptTerms:true,termsVersion:'local-draft-1'})
+    const register=await write(i,'/api/v1/auth/register',{email:'application-'+stamp+'-'+i+'@example.test',password:'Long application password 123!',passwordConfirmation:'Long application password 123!',locale:lang,acceptTerms:true,termsVersion:'local-draft-2'})
     expect(register.status()).toBe(201)
     expect((await write(i,'/api/v1/me/profile',{version:0,displayName:'Participant '+i,age:30,languages:['pl'],travelStyles:['trekking']},'PATCH')).status()).toBe(200)
     await write(i,'/api/v1/me/contacts',{contactEmail:'private-'+stamp+'-'+i+'@example.test'},'PUT')

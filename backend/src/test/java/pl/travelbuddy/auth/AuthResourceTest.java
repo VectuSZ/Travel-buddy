@@ -44,7 +44,7 @@ class AuthResourceTest {
     }
     Map<String,Object> registration() {
         return new HashMap<>(Map.of("email", email, "password", PASSWORD, "passwordConfirmation", PASSWORD,
-                "locale", "pl", "acceptTerms", true, "termsVersion", "local-draft-1"));
+                "locale", "pl", "acceptTerms", true, "termsVersion", "local-draft-2"));
     }
     String register() {
         return request(null).body(registration()).post("/api/v1/auth/register").then().statusCode(201)
@@ -98,7 +98,7 @@ class AuthResourceTest {
         assertTrue(cookie.contains("Path=/")); assertFalse(cookie.contains("Secure"));
         mutateUser(u -> {
             assertEquals("USER",u.role); assertEquals("ACTIVE",u.status); assertNull(u.emailVerifiedAt);
-            assertEquals("local-draft-1",u.termsVersion); assertNotNull(u.termsAcceptedAt);
+            assertEquals("local-draft-2",u.termsVersion); assertNotNull(u.termsAcceptedAt);
             assertTrue(u.passwordHash.startsWith("$argon2id$")); assertFalse(u.passwordHash.contains(PASSWORD));
             Session s=Session.find("tokenHash",Tokens.hash(second)).firstResult();
             assertEquals(32,s.tokenHash.length);

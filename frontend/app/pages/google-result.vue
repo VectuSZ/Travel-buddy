@@ -2,7 +2,7 @@
 const { t } = useI18n()
 const route = useRoute()
 const localePath = useLocalePath()
-const allowed = ['GOOGLE_CANCELLED','GOOGLE_FAILED','GOOGLE_DISABLED','GOOGLE_EMAIL_UNVERIFIED','GOOGLE_ACCOUNT_BLOCKED','GOOGLE_EMAIL_CONFLICT','GOOGLE_REGISTRATION_REQUIRED','GOOGLE_FLOW_INVALID','GOOGLE_TERMS_REQUIRED']
+const allowed = ['GOOGLE_IDENTITY_MISMATCH','REAUTHENTICATION_REQUIRED','GOOGLE_CANCELLED','GOOGLE_FAILED','GOOGLE_DISABLED','GOOGLE_EMAIL_UNVERIFIED','GOOGLE_ACCOUNT_BLOCKED','GOOGLE_EMAIL_CONFLICT','GOOGLE_REGISTRATION_REQUIRED','GOOGLE_FLOW_INVALID','GOOGLE_TERMS_REQUIRED']
 const code = computed(() => typeof route.query.code === 'string' && allowed.includes(route.query.code) ? route.query.code : 'GOOGLE_FAILED')
 useHead({ title: () => t('google.result'), meta: [{name:'robots',content:'noindex'},{name:'referrer',content:'no-referrer'}] })
 </script>

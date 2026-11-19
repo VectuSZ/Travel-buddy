@@ -509,3 +509,54 @@ Powtórka deletion-relations.spec.ts przeszła, podobnie AccountDeletionTest.
 SQL po workerze: 0 pozostałości A/B we wszystkich dziesięciu licznikach.
 Polecenia powtórzenia oraz odczytu SQL w README. Utworzenie kont, profili
 i publikacja były przygotowaniem przez API, akceptacja, kontakty i kasowanie przez UI.
+
+## Etap 7 — ukończony i zweryfikowany lokalnie, 2026-11-19
+
+Odbiór techniczny 7A opisano wyżej. W 7B dodano roboczy regulamin
+local-draft-2, politykę prywatności i ustawienia cookies w PL/EN,
+stopkę, linki przy rejestracji, metadane stron informacyjnych, sitemap
+i robots. Wersja przy rejestracji odpowiada wersji walidowanej i zapisywanej
+przez backend także przy rejestracji Google. Dodano tłumaczenia błędów
+ponownego uwierzytelniania. Słowniki mają po 279 kluczy, z identycznym
+zestawem ścieżek. Strona cookies nie wymaga decyzji. Czysty Chromium
+po zmianie języka na tej stronie nie miał zapisanych cookies.
+
+Weryfikacja 7B: backend 38/38 (AuthResourceTest, GoogleOidcTest,
+TripResourceTest, ProfileResourceTest, TripLifecycleTest), npm run typecheck,
+npm run build i git diff HEAD --check zaliczone. Końcowy wspólny przebieg
+Playwright 6/6 bez pominięć na osobnym schemacie stage7b_e2e.
+Sprawdzono dokumenty bez JS przy szerokości 375 px, SSR, canonical,
+hreflang, opis, przekierowania, filtry i błędne daty/budżety w testowanym
+zakresie wyszukiwarki. Szkic poza mapą, zamknięta wyprawa 200 z etykietą,
+po ukryciu 404 i usunięcie z mapy. Próba A/B/C objęła rejestrację
+i publikację przez API, wyszukanie przez B, zgłoszenie, akceptację, kontakty
+i usunięcie. W anonimowym HTML razem z osadzonym payloadem oraz w publicznym
+API i mapie sprawdzono brak znaczników prywatnych e-maili i wiadomości
+z próby. Odpowiedź kontaktów miała no-store. Instrukcja odbioru w README.
+W trakcie powtórek zadziałał limit raportów, a asercja komunikatu zapisu
+wymagała odróżnienia go od równoległego komunikatu ładowania.
+
+### Do uzupełnienia przez autora przed publikacją
+
+- Nazwa i adres administratora oraz działający kontakt do spraw danych,
+  skarg, moderacji i odwołań. Ustalić procedurę odpowiedzi i zweryfikować
+  dokumenty prawnie dla rzeczywistego modelu usługi.
+- Wskazać faktycznych dostawców hostingu, bazy, poczty i weryfikacji,
+  ich role, lokalizacje, ewentualne transfery i zabezpieczenia.
+- Potwierdzić produkcyjną retencję logów, backupów i procedurę po restore
+  zgodnie z decyzjami 7A. Prawdziwe Google i Cloudflare nadal wymagają
+  odbioru ze skonfigurowanymi usługami.
+
+Autor może teraz ocenić czytelność formularzy i dokumentów na telefonie,
+język PL/EN oraz nawigację ze stopki. Lokalnie dostępne na porcie 3104.
+
+Odbiór mobilny 7B w Chromium z JavaScriptem i emulacją dotyku: 4/4
+kombinacje szerokości 320 i 390 px oraz PL/EN przeszły. Z formularza
+rejestracji otwarto regulamin w nowej karcie (wersja local-draft-2,
+checkbox pozostał niezaznaczony) i politykę prywatności. Sprawdzono
+wszystkie trzy linki stopki, treść dokumentów, informację o niezbędnych
+cookies i przełączenie języka na stronie ustawień. Brak poziomego
+przewijania, wyjątków JS i zapisanych cookies w tej anonimowej próbie.
+Na zrzucie PL przy 320 px nagłówek i stopka zawijają się czytelnie.
+Próba obejmowała emulację Chromium. Natywne Safari i fizyczny ekran
+telefonu nie były przedmiotem tego sprawdzenia.

@@ -23,7 +23,7 @@ class GoogleOidcTest {
  Flow start(String mode) {
   Response csrf=given().get("/api/v1/auth/csrf");
   Response begin=given().cookies(csrf.cookies()).cookies(reauthenticationSession==null?Map.of():Map.of("session",reauthenticationSession)).header("Origin","http://localhost:3000").header("X-CSRF-TOKEN",csrf.path("token"))
-   .contentType("application/json").body(Map.of("mode",mode,"locale","en","acceptTerms",true,"termsVersion","local-draft-1"))
+   .contentType("application/json").body(Map.of("mode",mode,"locale","en","acceptTerms",true,"termsVersion","local-draft-2"))
    .post("/api/v1/auth/google/start");
   begin.then().statusCode(200);
   Map<String,String> cookies=new HashMap<>(begin.cookies());
@@ -58,7 +58,7 @@ class GoogleOidcTest {
   String session=first.cookie("session"); assertNotNull(session);
   assertTrue(first.cookie("q_session")==null || first.cookie("q_session").isEmpty());
   given().cookie("session",session).get("/api/v1/auth/session").then().statusCode(200).body("keySet()",contains("email")).body("email",is(email));
-  QuarkusTransaction.requiringNew().run(()-> { User u=User.find("email",email).firstResult(); assertNull(u.passwordHash); assertNotNull(u.emailVerifiedAt); assertEquals("en",u.uiLocale); assertEquals("local-draft-1",u.termsVersion); assertEquals(1,AuthIdentity.count("user",u)); });
+  QuarkusTransaction.requiringNew().run(()-> { User u=User.find("email",email).firstResult(); assertNull(u.passwordHash); assertNotNull(u.emailVerifiedAt); assertEquals("en",u.uiLocale); assertEquals("local-draft-2",u.termsVersion); assertEquals(1,AuthIdentity.count("user",u)); });
   Response again=finish(start("login"),Map.of("email","changed@example.test")); again.then().statusCode(303).header("Location",endsWith("/en/account"));
   assertNotEquals(session,again.cookie("session"));
   String all=again.asString()+again.getHeaders(); assertFalse(all.contains(sub)); assertFalse(all.contains("provider-access-secret")); assertFalse(all.contains("provider-refresh-secret"));
@@ -66,7 +66,7 @@ class GoogleOidcTest {
  @Test void businessRejectionsAndNoLinking() {
   finish(start("login"),Map.of()).then().header("Location",containsString("GOOGLE_REGISTRATION_REQUIRED"));
   finish(start("register"),Map.of("email_verified",false)).then().header("Location",containsString("GOOGLE_EMAIL_UNVERIFIED"));
-  QuarkusTransaction.requiringNew().run(()-> { User u=new User();u.id=UUID.randomUUID();u.email=email;u.passwordHash="unchanged";u.role="USER";u.status="ACTIVE";u.uiLocale="pl";u.termsVersion="local-draft-1";u.termsAcceptedAt=u.createdAt=u.updatedAt=Instant.now();u.persist(); });
+  QuarkusTransaction.requiringNew().run(()-> { User u=new User();u.id=UUID.randomUUID();u.email=email;u.passwordHash="unchanged";u.role="USER";u.status="ACTIVE";u.uiLocale="pl";u.termsVersion="local-draft-2";u.termsAcceptedAt=u.createdAt=u.updatedAt=Instant.now();u.persist(); });
   finish(start("register"),Map.of()).then().header("Location",containsString("GOOGLE_EMAIL_CONFLICT"));
   QuarkusTransaction.requiringNew().run(()-> { User u=User.find("email",email).firstResult();assertEquals("unchanged",u.passwordHash);assertEquals(0,AuthIdentity.count("user",u)); });
  }

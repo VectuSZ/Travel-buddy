@@ -12,6 +12,11 @@ public class TripResource {
  @Inject RoutingContext routing;
  User user(){var c=routing.request().getCookie(sessions.cookieName());return sessions.require(c==null?null:c.getValue());}
  static final String VISIBLE="moderationStatus = 'VISIBLE' and organizerId in (select u.id from User u where u.status = 'ACTIVE')";
+ public record SitemapEntry(UUID id,String slug,String contentLanguage,java.time.Instant updatedAt) {}
+ @GET @Path("/sitemap-trips") public List<SitemapEntry> sitemap() {
+  return Trip.find("status in ('OPEN','CLOSED') and "+VISIBLE+" order by id")
+      .project(SitemapEntry.class).list();
+ }
  @Inject TripSearch search;
  @GET @Path("/trips") public TripSearch.Results list(@QueryParam("country") String country,@QueryParam("from") String from,@QueryParam("to") String to,@QueryParam("budgetMin") String min,@QueryParam("budgetMax") String max,@QueryParam("style") String style,@QueryParam("page") String page,@QueryParam("size") String size){return search.search(country,from,to,min,max,style,page,size);}
  @GET @Path("/trips/{id}") public TripView get(@PathParam("id") UUID id){

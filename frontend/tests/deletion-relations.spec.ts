@@ -13,7 +13,7 @@ for(const lang of ['pl']){
     return request.fetch(url,{method,data,headers:{Origin:process.env.E2E_BASE_URL||'http://localhost:3000','X-CSRF-TOKEN':csrf.token}})
    }
    for(let i=0;i<3;i++){
-    const register=await write(i,'/api/v1/auth/register',{email:'application-'+stamp+'-'+i+'@example.test',password:'Long application password 123!',passwordConfirmation:'Long application password 123!',locale:lang,acceptTerms:true,termsVersion:'local-draft-1'})
+    const register=await write(i,'/api/v1/auth/register',{email:'application-'+stamp+'-'+i+'@example.test',password:'Long application password 123!',passwordConfirmation:'Long application password 123!',locale:lang,acceptTerms:true,termsVersion:'local-draft-2'})
     expect(register.status()).toBe(201)
     expect((await write(i,'/api/v1/me/profile',{version:0,displayName:'Participant '+i,age:30,languages:['pl'],travelStyles:['trekking']},'PATCH')).status()).toBe(200)
     await write(i,'/api/v1/me/contacts',{contactEmail:'private-'+stamp+'-'+i+'@example.test'},'PUT')
@@ -22,7 +22,8 @@ for(const lang of ['pl']){
    expect((await write(0,'/api/v1/trips/'+trip.id+'/publish',{version:trip.version})).status()).toBe(200)
    const [a,b,c]=pages
    { const p=b!
-    await p.goto(prefix+'/trips/'+trip.id)
+    await p.goto('/pl/wyprawy?country=PL')
+    await p.getByRole('link',{name:'Application trip '+stamp,exact:true}).click()
     await p.locator('[name=applicationMessage]').fill('Private message '+stamp)
     await p.locator('[name=applicationConsent]').check()
     await p.getByRole('button',{name:en?'Apply':'Wyślij zgłoszenie',exact:true}).click()
@@ -44,6 +45,15 @@ for(const lang of ['pl']){
    const password='Long application password 123!'
    expect((await write(3,'/api/v1/auth/login',{email:'application-'+stamp+'-1@example.test',password})).status()).toBe(204)
    const ids=await Promise.all([a!,b!,c!].map(async p=>(await (await p.request.get('/api/v1/me')).json()).userId))
+   const privateResponse=await a!.request.get('/api/v1/trips/'+trip.id+'/contacts/'+ids[1])
+   expect(privateResponse.status()).toBe(200)
+   expect(privateResponse.headers()['cache-control']).toContain('no-store')
+   for(const path of [b!.url(),'/profiles/'+ids[1],'/api/v1/profiles/'+ids[1],'/api/v1/trips/'+trip.id,'/api/v1/trips/'+trip.id+'/participants','/pl/wyprawy','/api/v1/trips','/sitemap.xml']){
+    const response=await anon.request.get(path)
+    expect(response.status()).toBe(200)
+    const raw=await response.text()
+    for(const secret of ['private-'+stamp,'Private message '+stamp,'application-'+stamp+'-']) expect(raw).not.toContain(secret)
+   }
    const tripUrl=b!.url()
    const profiles=ids.map(id=>base+'/profiles/'+id)
    console.log(JSON.stringify({profiles,tripUrl,tripId:trip.id}))
