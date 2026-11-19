@@ -16,7 +16,7 @@ for(const lang of ['pl','en']){
     expect((await write(i,'/api/v1/me/profile',{version:0,displayName:'Participant '+i,age:30,languages:['pl'],travelStyles:['trekking']},'PATCH')).status()).toBe(200)
     await write(i,'/api/v1/me/contacts',{contactEmail:'private-'+stamp+'-'+i+'@example.test'},'PUT')
    }
-   const trip=await (await write(0,'/api/v1/trips',{title:'Application trip '+stamp,itinerary:'Walk together',lookingFor:'Travelers',contentLanguage:'en',dateMode:'EXACT',dateFrom:'2027-07-01',dateTo:'2027-07-03',targetPeople:3,budgetMin:100,budgetMax:500,styles:['trekking'],locations:[{countryCode:'PL'}]})).json()
+   const trip=await (await write(0,'/api/v1/trips',{title:'Application trip '+stamp,itinerary:'Walk together',lookingFor:'Travelers',contentLanguage:'en',dateMode:'EXACT',dateFrom:'2027-07-01',dateTo:'2027-07-03',targetPeople:2,budgetMin:100,budgetMax:500,styles:['trekking'],locations:[{countryCode:'PL'}]})).json()
    expect((await write(0,'/api/v1/trips/'+trip.id+'/publish',{version:trip.version})).status()).toBe(200)
    const [a,b,c]=pages
    for(const p of [b!,c!]){
@@ -38,6 +38,10 @@ for(const lang of ['pl','en']){
    await rejected.getByRole('button',{name:en?'Reject':'Odrzuć',exact:true}).click()
    await expect(rejected).toContainText(en?'Rejected':'Odrzucone')
    await b!.reload()
+   await expect(b!.locator('.trip-status')).toHaveText(en?'No places available':'Brak wolnych miejsc')
+   await a!.goto(prefix+'/trips/'+trip.id)
+   await expect(a!.locator('main')).toContainText(en?'No places available':'Brak wolnych miejsc')
+   await expect(a!.locator('[name=applicationMessage]')).toHaveCount(0)
    await expect(b!.locator('main ul')).toContainText('Participant 1')
    await b!.getByRole('button',{name:en?'Show contact':'Pokaż kontakt',exact:true}).click()
    await expect(b!.locator('aside')).toContainText('private-'+stamp+'-0@example.test')
@@ -48,6 +52,7 @@ for(const lang of ['pl','en']){
    expect(html).not.toContain('application-'+stamp)
    await b!.getByRole('button',{name:en?'Withdraw application':'Wycofaj zgłoszenie',exact:true}).click()
    await expect(b!.locator('aside')).toHaveCount(0)
+   await expect(b!.locator('.trip-status')).toHaveText(en?'Open':'Otwarta')
    await expect(b!.locator('main')).toContainText(en?'Withdrawn':'Wycofane')
    await c!.goto(prefix+'/my-applications')
    await expect(c!.locator('main')).toContainText(en?'Rejected':'Odrzucone')

@@ -1,4 +1,5 @@
 {
+  "languageMenu": "Język",
   "trips": "Wyprawy",
   "intro": "Znajdź inspirację do wspólnej podróży.",
   "loading": "Ładowanie…",
@@ -183,13 +184,15 @@
     "termsLocked": "Po pierwszej akceptacji nie można zmienić krajów, dat ani budżetu lub zmniejszyć liczby miejsc."
   },
   "search": {
-    "country": "Kraj (kod ISO, np. PT)",
+    "filters": "Filtry",
+    "noCountry": "Nie znaleziono kraju",
+    "country": "Kraj",
     "to": "Termin do",
     "budgetMin": "Budżet minimum (PLN/os.)",
     "budgetMax": "Budżet maksimum (PLN/os.)",
     "any": "Dowolny",
     "size": "Wyników na stronie",
-    "apply": "Szukaj",
+    "apply": "Zastosuj filtry",
     "clear": "Wyczyść filtry",
     "invalid": "Nieprawidłowe filtry. Sprawdź kraj, zakres dat, budżet i numer strony.",
     "total": "Liczba wyników",

@@ -1,4 +1,5 @@
 {
+  "languageMenu": "Language",
   "trips": "Trips",
   "intro": "Find inspiration for your next shared adventure.",
   "loading": "Loading…",
@@ -183,13 +184,15 @@
     "termsLocked": "After the first acceptance, countries, dates and budget cannot change and capacity cannot decrease."
   },
   "search": {
-    "country": "Country (ISO code, e.g. PT)",
+    "filters": "Filters",
+    "noCountry": "No matching country",
+    "country": "Country",
     "to": "Date to",
     "budgetMin": "Minimum budget (PLN/person)",
     "budgetMax": "Maximum budget (PLN/person)",
     "any": "Any",
     "size": "Results per page",
-    "apply": "Search",
+    "apply": "Apply filters",
     "clear": "Clear filters",
     "invalid": "Invalid filters. Check country, dates, budget and page number.",
     "total": "Results",
@@ -230,7 +233,7 @@
       "APPLICATION_LIMIT": "Application limit reached.",
       "error": "The operation failed."
     },
-    "full": "Trip full"
+    "full": "No places available"
   },
   "moderation": {
     "report": "Report",

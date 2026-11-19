@@ -17,7 +17,8 @@ public class ApplicationService {
  void visible(Trip t){if(!"VISIBLE".equals(t.moderationStatus)||"DRAFT".equals(t.status))fail(404,"TRIP_NOT_FOUND");active(t.organizerId);}
  void open(Trip t){visible(t);if(!"OPEN".equals(t.status))fail(409,"TRIP_CLOSED");}
  long accepted(UUID id){return TripApplication.count("tripId = ?1 and status = 'ACCEPTED'",id);}
- void space(Trip t){if(accepted(t.id)+1>=t.targetPeople)fail(409,"TRIP_FULL");}
+ long remainingPlaces(Trip t){return Math.max(0,t.targetPeople-1-accepted(t.id));}
+ void space(Trip t){if(remainingPlaces(t)==0)fail(409,"TRIP_FULL");}
  View view(TripApplication a){Trip t=Trip.findById(a.tripId);TravelerProfile p=TravelerProfile.findById(a.applicantId);return new View(a.id,a.tripId,t.title,t.organizerId,a.applicantId,p==null?"":p.displayName,a.message,a.status);}
  @Transactional public View apply(User u,UUID id,com.fasterxml.jackson.databind.JsonNode input){
   User applicant=User.findById(u.id,LockModeType.PESSIMISTIC_WRITE);

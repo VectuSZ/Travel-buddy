@@ -1,7 +1,7 @@
 <script setup lang="ts">
 import {languageCodes,styleCodes} from '~/utils/profileCodes'
 import type {OwnedTrip,TripFields} from '../../shared/owned-trip'
-const {t,locale}=useI18n(),path=useLocalePath(),route=useRoute()
+const {t}=useI18n(),path=useLocalePath(),route=useRoute()
 const {write}=useTripApi()
 const id=ref(typeof route.query.id==='string'?route.query.id:''),version=ref(0),state=ref('DRAFT')
 const loading=ref(true),loaded=ref(false),busy=ref(false),error=ref(''),saved=ref(false)
@@ -9,11 +9,6 @@ const errors=ref<Record<string,string>>({})
 const form=reactive({title:'',itinerary:'',lookingFor:'',contentLanguage:'',dateMode:'',dateFrom:'',dateTo:'',durationDays:'' as string|number,targetPeople:'' as string|number,budgetMin:'' as string|number,budgetMax:'' as string|number,styles:[] as string[],locations:[] as {countryCode:string;city:string}[]})
 const textFields=['title','itinerary','lookingFor'] as const
 const numberFields=['durationDays','targetPeople','budgetMin','budgetMax'] as const
-const countries=computed(()=>{
- const names=new Intl.DisplayNames([locale.value],{type:'region'})
- return countryCodes.split(' ').map(code=>({code,name:names.of(code)||code})).sort((a,b)=>a.name.localeCompare(b.name,locale.value))
-})
-const countryCodes='AD AE AF AG AI AL AM AO AQ AR AS AT AU AW AX AZ BA BB BD BE BF BG BH BI BJ BL BM BN BO BQ BR BS BT BV BW BY BZ CA CC CD CF CG CH CI CK CL CM CN CO CR CU CV CW CX CY CZ DE DJ DK DM DO DZ EC EE EG EH ER ES ET FI FJ FK FM FO FR GA GB GD GE GF GG GH GI GL GM GN GP GQ GR GS GT GU GW GY HK HM HN HR HT HU ID IE IL IM IN IO IQ IR IS IT JE JM JO JP KE KG KH KI KM KN KP KR KW KY KZ LA LB LC LI LK LR LS LT LU LV LY MA MC MD ME MF MG MH MK ML MM MN MO MP MQ MR MS MT MU MV MW MX MY MZ NA NC NE NF NG NI NL NO NP NR NU NZ OM PA PE PF PG PH PK PL PM PN PR PS PT PW PY QA RE RO RS RU RW SA SB SC SD SE SG SH SI SJ SK SL SM SN SO SR SS ST SV SX SY SZ TC TD TF TG TH TJ TK TL TM TN TO TR TT TV TW TZ UA UG UM US UY UZ VA VC VE VG VI VN VU WF WS YE YT ZA ZM ZW'
 function fill(data:OwnedTrip){
  id.value=data.id;version.value=data.version;state.value=data.status
  for(const key of textFields)form[key]=data[key]||''
@@ -114,7 +109,7 @@ onMounted(load)
  </label>
  <fieldset><legend>{{ t('owner.locations') }}</legend>
  <div v-for="(location,index) in form.locations" :key="index" class="location">
- <label>{{ t('owner.country') }}<select v-model="location.countryCode" name="countryCode"><option value="">{{ t('owner.choose') }}</option><option v-for="country in countries" :key="country.code" :value="country.code">{{ country.name }}</option></select></label>
+ <CountryPicker v-model="location.countryCode" name="countryCode" :label="t('owner.country')" />
  <label>{{ t('owner.city') }}<input v-model="location.city" name="city" maxlength="120"></label>
  <button type="button" :disabled="index===0" @click="move(index,-1)">{{ t('owner.up') }}</button>
  <button type="button" :disabled="index===form.locations.length-1" @click="move(index,1)">{{ t('owner.down') }}</button>

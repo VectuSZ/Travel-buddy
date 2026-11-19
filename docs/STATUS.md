@@ -1,6 +1,64 @@
 # Status projektu
 
-## Aktualny stan — 2026-11-15
+## Przekazanie do nowej sesji Codex — 2026-11-19
+
+**Następne zadanie to pełny odbiór lokalnego MVP, począwszy od etapu 1.**
+Implementacja etapów 1–7B jest zakończona. Odbieraj kolejno 1 → 2A → 2B → 3 → 4 → 5 → 6 → 7A → 7B.
+Dla każdego etapu zapisz środowisko, polecenia, wynik i ewentualny brak dowodu.
+Etap 8 świadomie odłożono do decyzji autora po odbiorze. Obowiązuje AGENTS.md.
+
+**Git przy przekazaniu.** Lokalna gałąź `main`, HEAD `b8095f7` („Stage 7B of working application”),
+zgodna z lokalną referencją `origin/main` w chwili odczytu. Na wejściu drzewo i indeks były czyste.
+Jedyna niezatwierdzona zmiana tego przekazania to `docs/STATUS.md`. W nowej sesji zacznij od
+`git status --short --branch`. Dalsze, datowane wpisy poniżej tego podsumowania mają charakter archiwalny.
+
+### Funkcje i zapisane dowody odbiorów cząstkowych
+
+Wszystkie etapy w tabeli są zaimplementowane lokalnie. Liczby dotyczą konkretnych wcześniejszych
+przebiegów na ówczesnych wersjach kodu. Zestawy częściowo się pokrywają. W ramach przekazania
+sprawdzono dokumentację, kod i stan Git; testów aplikacji ponownie nie uruchamiano.
+
+| Etap | Co działa | Zapisany wynik i jego zakres |
+| --- | --- | --- |
+| 1 | PostgreSQL 17 w Compose, migracje Flyway, Quarkus REST i healthcheck, Nuxt SSR listy i szczegółów PL/EN, dane demo dla dev/test. | 2 testy API, SSR 4/4, health UP, zachowane UUID po restarcie PostgreSQL. Start od świeżego checkoutu nadal do sprawdzenia. |
+| 2A | Rejestracja hasłem, logowanie i wylogowanie, sesje w PostgreSQL, CSRF i kontrola Origin, jednorazowy reset przez e-mail z unieważnieniem sesji. | AuthResourceTest 17/17 w regresji etapu 4; E2E PL/EN z resetem przez Mailpit. Brak osobnej próby aktywnej sesji po restarcie backendu. |
+| 2B | Opcjonalne logowanie i rejestracja Google OIDC. Konto wiązane przez issuer i subject, bez automatycznego łączenia po e-mailu. | Kontrolowany OIDC 9/9 w etapie 4, następnie 10/10 w zestawie 7B obejmującym ponowne uwierzytelnienie. Rzeczywisty Google pozostaje do odbioru. |
+| 3 | Edycja profilu, deklarowany wiek, języki i style, prywatne kontakty, publiczny profil z osobnym DTO. | ProfileResourceTest 6/6, E2E profili PL/EN i kontrola HTML/payloadu pod kątem kontaktów. |
+| 4 | Szkic, publikacja, edycja, zamykanie, trasa i lokalizacje, filtry i paginacja, publiczne szczegóły SSR, kanoniczne slugi i 301. | Backend 39/39 z regresją wcześniejszych etapów; ówczesne E2E 6/6, SSR 4/4, proxy, typecheck i build. |
+| 5 | Zgłoszenie z wiadomością, decyzja organizatora, wycofanie, miejsca i publiczni uczestnicy. Po akceptacji organizator i uczestnik widzą wzajemnie kontakty. | Backend 44/44, nowe E2E zgłoszeń PL/EN 2/2, typecheck i build. |
+| 6 | Raporty profilu lub wyprawy także bez konta, challenge i limit zgłoszeń, panel ADMIN, decyzje z uzasadnieniem, audyt, ukrywanie i blokowanie, powiadomienia. | 16/16 w wybranych modułach i E2E moderacji 1/1; poczta potwierdzona przez MockMailbox, challenge przez lokalny adapter. |
+| 7A | Usunięcie własnego konta po świeżym uwierzytelnieniu, natychmiastowa utrata sesji i miejsca, trwała kolejka fizycznego kasowania, minimalizacja moderacji i retencja. | Backend 55/55, E2E PL/EN 2/2. W osobnej próbie A/B/B2/C poprawiono zwalnianie miejsca; SQL po wykonaniu zadania dał 0 w 10 licznikach A/B i 1 aktywne C. |
+| 7B | Regulamin i prywatność PL/EN, wersja regulaminu zapisywana przy rejestracji, ustawienia cookies, sitemap, robots, canonical i hreflang. | Backend 38/38 i E2E 6/6, typecheck i build. Sprawdzono anonimowy HTML z payloadem, API, cache kontaktów i wykluczenie ukrytej wyprawy. Mobilny Chromium 4/4 dla dokumentów, linków i cookies (320/390 px × PL/EN). |
+
+### Decyzje, ograniczenia i otwarte sprawdzenia
+
+- **Dane i widoczność.** Flyway zmienia schemat; Hibernate go waliduje. Zachowano starsze kolumny wypraw i aliasy DTO. Lista pokazuje otwarte widoczne wyprawy aktywnych autorów. Zamknięta wyprawa ma publiczne szczegóły 200 do końca retencji; szkic i ukryta wyprawa dają 404. Treść autora zachowuje swój język.
+- **Usuwanie.** Obecność w kolejce i blokada rekordu zastępują osobne stany zadania z planu. Worker ponawia transakcję po błędzie, gdy aplikacja działa. Sprzątanie sesji i tokenów odbywa się co godzinę. Granica końca wyprawy używa Europe/Warsaw. Retencja zamkniętych wypraw oraz zakończonej moderacji wynosi 12 miesięcy według zasad 7A w [DECISIONS.md](DECISIONS.md). Test błędu symulował rollback; awaryjne zabicie procesu i odtworzenie backupu nie były częścią tej próby.
+- **Luki produktu i eksploatacji.** Odnotowano brak linków do profili przy uczestnikach i zgłoszeniach. Uczestnik może się wycofać, organizator nie usuwa zaakceptowanego uczestnika. Brak trwałego ponawiania SMTP. Historycznie pierwsze żądanie po restarcie PostgreSQL raz zwróciło 500, kolejne zadziałało. Sprawdzić ponownie w etapie 1.
+- **Ręczny odbiór.** Zacząć od uruchomienia w czystym checkoucie i sprawdzenia trwałości danych. Następnie sprawdzić tę samą sesję po restarcie backendu, wiadomości resetu i decyzji w Mailpit oraz główną ścieżkę A/B/C na fizycznym telefonie. Emulacja mobilna 7B obejmowała dokumenty i nawigację. Google (również świeże auth_time przy usuwaniu) i Cloudflare Siteverify wymagają osobnego odbioru z uprawnionym kontem i kluczami.
+- **Przed publikacją.** Dokumenty są robocze, obecna wersja regulaminu to local-draft-2. Autor uzupełnia dane administratora, kontakt i dostawców oraz weryfikuje procedury i treść prawnie. Ustawienia pokazują niezbędne cookies; opcjonalne integracje, reklamy i analityka nie są aktywne. Produkcyjna retencja logów, alarm zaległych usunięć, backupy i ponowienie usunięć po restore należą do odłożonego etapu 8.
+
+### Uruchomienie i weryfikacja
+
+Na macOS potrzebne są Java 21, Node 24, npm i Docker Desktop. W nowym checkoucie utwórz
+lokalny `.env` z `.env.example`, zachowując istniejący plik, jeśli jest. Wykonaj `npm ci`
+w `frontend/`. Z katalogu projektu uruchom `docker compose up -d --wait`, następnie w osobnych
+terminalach `./scripts/backend.sh quarkus:dev` i `cd frontend && npm run dev`.
+UI działa na localhost:3000, API na localhost:8080, PostgreSQL na 127.0.0.1:5433.
+Sprawdzenia startowe: `curl -f http://localhost:8080/q/health/ready` i `node scripts/check-ssr.mjs`.
+Przy zatrzymywaniu używaj `docker compose stop`, zachowując wolumen.
+
+Do testów backendu użyj osobnej istniejącej bazy testowej:
+`./scripts/backend.sh test -Dquarkus.datasource.jdbc.url=jdbc:postgresql://127.0.0.1:5433/travel_buddy_stage4_test_20261114`.
+Frontend: w `frontend/` wykonaj `npm run typecheck && npm run build`.
+Gotowe polecenia do E2E ze zbudowanym Nuxtem są w sekcji **Lokalny odbiór etapu 7B**
+w [README.md](../README.md) (porty 8084/3104, schemat stage7b_e2e, dedykowane konta).
+Scenariusz usuwania i odczyt kontrolny SQL mają własną instrukcję 7A i schemat stage7a_trial.
+Korzystaj z instrukcji właściwej dla danego scenariusza.
+
+---
+
+## Archiwalny stan — 2026-11-15
 
 Praca wyłącznie lokalna. Poniższe podsumowanie zastępuje starsze wpisy
 „w toku” i „następny krok”; historia wyników pozostaje poniżej.

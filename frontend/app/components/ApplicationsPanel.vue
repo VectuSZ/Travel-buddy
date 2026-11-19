@@ -1,7 +1,8 @@
 <script setup lang="ts">
 import type {Contacts} from '../../shared/profile'
 interface Application {id:string;tripId:string;tripTitle:string;organizerId:string;applicantId:string;displayName:string;message:string;status:string}
-const props=defineProps<{tripId?:string;organizer?:boolean;tripStatus?:string}>()
+const props=defineProps<{tripId?:string;organizer?:boolean;tripStatus?:string;remainingPlaces?:number}>()
+const emit=defineEmits<{availabilityChanged:[]}>()
 const {t}=useI18n(),path=useLocalePath(),{write}=useTripApi()
 const rows=ref<Application[]>([]),message=ref(''),busy=ref(false),error=ref(''),ready=ref(false),ack=ref(false),contacts=ref<Contacts|null>(null)
 async function load(){
@@ -17,7 +18,8 @@ async function action(action:string,row?:Application){
   if(action==='apply')await write('/api/v1/trips/'+props.tripId+'/applications',{message:message.value})
   else await write('/api/v1/applications/'+row!.id+'/'+action,{})
   await load()
- }catch(e){handle(e)}finally{busy.value=false}
+  emit('availabilityChanged')
+ }catch(e){handle(e);emit('availabilityChanged')}finally{busy.value=false}
 }
 async function reveal(row:Application){
  contacts.value=null;error.value=''
@@ -31,7 +33,7 @@ onBeforeUnmount(()=>{contacts.value=null})
 <h2>{{ t(organizer?'applications.incoming':'applications.mine') }}</h2>
 <p v-if="error" role="alert">{{ t('applications.errors.'+(['session','PROFILE_CONTACT_REQUIRED','TRIP_FULL','ALREADY_APPLIED','TRIP_CLOSED','OWN_TRIP','CONTACT_FORBIDDEN','APPLICATION_STATE','INVALID_MESSAGE','APPLICATION_LIMIT'].includes(error)?error:'error')) }} <NuxtLink v-if="error==='session'" :to="path('/login')">{{ t('auth.login') }}</NuxtLink><NuxtLink v-if="error==='PROFILE_CONTACT_REQUIRED'" :to="path('/account')">{{ t('auth.account') }}</NuxtLink></p>
 <template v-if="ready">
-<form v-if="tripId&&tripStatus==='OPEN'&&!organizer&&!visible.length" @submit.prevent="action('apply')">
+<form v-if="tripId&&tripStatus==='OPEN'&&(remainingPlaces||0)>0&&!organizer&&!visible.length" @submit.prevent="action('apply')">
 <p>{{ t('applications.notice') }}</p>
 <label>{{ t('applications.message') }}<textarea v-model="message" name="applicationMessage" required maxlength="2000" /></label>
 <label><input v-model="ack" type="checkbox" name="applicationConsent" required>{{ t('applications.ack') }}</label>

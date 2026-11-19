@@ -19,9 +19,11 @@ public class TripResource {
  }
  @Inject TripSearch search;
  @GET @Path("/trips") public TripSearch.Results list(@QueryParam("country") String country,@QueryParam("from") String from,@QueryParam("to") String to,@QueryParam("budgetMin") String min,@QueryParam("budgetMax") String max,@QueryParam("style") String style,@QueryParam("page") String page,@QueryParam("size") String size){return search.search(country,from,to,min,max,style,page,size);}
- @GET @Path("/trips/{id}") public TripView get(@PathParam("id") UUID id){
+ @Inject ApplicationService applications;
+ public record Details(@com.fasterxml.jackson.annotation.JsonUnwrapped TripView trip,long remainingPlaces) {}
+ @GET @Path("/trips/{id}") public Details get(@PathParam("id") UUID id){
   Trip t=Trip.find("id = ?1 and status in ('OPEN','CLOSED') and "+VISIBLE,id).firstResult();
-  if(t==null)throw new NotFoundException();return service.view(t);
+  if(t==null)throw new NotFoundException();return new Details(service.view(t),applications.remainingPlaces(t));
  }
  @GET @Path("/me/trips") public List<TripView> mine(){return service.mine(user());}
  @GET @Path("/me/trips/{id}") public TripView mine(@PathParam("id") UUID id){return service.mine(user(),id);}

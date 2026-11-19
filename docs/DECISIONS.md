@@ -421,3 +421,10 @@ Mapa witryny pobiera wyłącznie ID, slug, język treści i datę aktualizacji
 widocznych OPEN/CLOSED aktywnych autorów. CLOSED pozostaje kanonicznym
 publicznym zasobem do usunięcia przez retencję. Odpowiedź mapy ma no-store.
 Listy PL/EN i strony informacyjne mają własne canonical i hreflang.
+
+## Odbiór etapu 1 — odporność na restart i prezentacja wypraw
+
+- Pula Agroal sprawdza połączenie JDBC przy każdym wypożyczeniu. Oznacza to koszt walidacji również przy zdrowej bazie. W lokalnym MVP priorytet ma poprawny pierwszy odczyt po restarcie PostgreSQL.
+- Wybór, filtr i zapis kraju mają wspólny identyfikator ISO 3166-1 alpha-2. Lokalny słownik zawiera 249 kodów, grupy geograficzne i aliasy wyszukiwania. Nazwy krajów pobieramy z lokalnego Intl.DisplayNames dla PL i EN. Nazwy kontynentów są zapisane jawnie, ponieważ obsługa numerycznych kodów regionów różni się między przeglądarką a Node.
+- Na potrzeby kart przypisujemy jeden kontynent do kraju lub terytorium. Rosję pokazujemy w Europie, Turcję, Kazachstan, Gruzję, Armenię, Azerbejdżan i Cypr w Azji, Egipt w Afryce. Terytoria mają własne wpisy, np. Grenlandia należy na karcie do Ameryki Północnej, a Gujana Francuska do Południowej. To konwencja prezentacji. Powtarzające się kraje i kontynenty pokazujemy raz, w kolejności pierwszego wystąpienia.
+- Pole remainingPlaces w publicznych szczegółach korzysta z tej samej reguły co zapis zgłoszenia. Organizator i każda zaakceptowana osoba zajmują po jednym miejscu. Ostateczna kontrola dostępności przy zapisie nadal odbywa się w transakcji backendu.
