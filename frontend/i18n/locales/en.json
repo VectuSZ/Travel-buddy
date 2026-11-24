@@ -21,6 +21,7 @@
     "confirmation": "Confirm password",
     "accept": "I accept",
     "terms": "Local draft terms",
+    "passwordLength": "Password must be between 12 and 1024 characters.",
     "passwordHint": "12 to 1024 characters. Long passphrases are welcome.",
     "resetSent": "If an active password account exists, we will send a reset link. Check local Mailpit.",
     "resetDone": "Your password has changed. Log in again.",

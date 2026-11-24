@@ -2,7 +2,7 @@
 
 ## Etap 1 — 19 listopada 2026
 
-**Decyzja autora oczekuje.** Audyt dotyczy szkieletu w aktualnym MVP, commit `b8095f7`. Ręczny odbiór i uwagi autora są otwarte. Etap 2A oczekuje na osobną decyzję.
+**Etap 1 odebrany 24 listopada 2026.** Autor potwierdził poprawne działanie po pięciu poprawkach. Poniższe wpisy z 19 listopada dokumentują przebieg audytu.
 
 ### Wymagania i stan implementacji
 
@@ -91,7 +91,7 @@ cmp ../manual-before.json ../manual-after.json
 
 Po próbach zatrzymaj serwery przez Ctrl+C i wykonaj polecenie stop postgres z bloku restartu. Pozostawia ono wolumen do dalszego odbioru.
 
-**Uwagi autora:** oczekujące. **Ostateczny status etapu:** otwarty, do decyzji autora po ręcznych próbach.
+**Stan pierwszej próby z 19 listopada:** oczekiwanie na uwagi autora.
 
 ### Powtórka przed odbiorem autora — 19 listopada 2026
 
@@ -135,4 +135,136 @@ Wykonaj próby na localhost:3000, najpierw w dużym oknie, potem w wąskim. Powt
 6. **Ostatnie miejsce.** Dla powyższej wyprawy ustaw limit dwóch osób przed publikacją. Z drugiego gotowego konta wyślij zgłoszenie. Zaakceptuj jako organizator i odśwież szczegóły. Powinien pojawić się stan „Brak wolnych miejsc”. Po wycofaniu uczestnika wyprawa znów jest otwarta z miejscem. Po zamknięciu przez organizatora sprawdź szarą etykietę „Zamknięta” i brak formularza zgłoszenia.
 7. **Opcjonalne własne potwierdzenie restartu.** W katalogu kopii audytowej wykonaj blok restartu z próby 5. Zapisz pierwszy kod bez odświeżania. Oczekiwany wynik to 200 i identyczne dane po cmp.
 
-**Ostateczna decyzja autora po poprawkach:** oczekująca.
+**Ostateczna decyzja autora po poprawkach:** etap 1 odebrany.
+
+## Etap 2A — lokalne konta, 24 listopada 2026
+
+**Ręczny odbiór: odebrany.** Autor potwierdził działanie po obu poprawkach formularza rejestracji. Badana rewizja cb7b265, początkowy git status --short pusty. Zakres wynika z PLAN „Etap 2”, podziału 2A/2B w DECISIONS i otwartej próby restartu w STATUS. Google pozostaje w 2B.
+
+### Wymagania i wyniki
+
+Każde wymaganie w poniższej tabeli oceniono jako **zaimplementowane**.
+
+| Wymaganie | Implementacja i dowód |
+|---|---|
+| Rejestracja, walidacja, unikalność e-maila | AuthDtos, AuthService i migracja V3. Poprawny e-mail do 254 znaków, hasło i potwierdzenie po 12–1024 jednostki UTF-16. Zapis małymi literami, unikalny indeks lower(email). AuthResourceTest sprawdza 400, duplikat 409 oraz równoczesną rejestrację. |
+| Akceptacja regulaminu i automatyczna sesja | Bieżąca wersja local-draft-2; wymagane zaznaczenie zgody. Backend zapisuje wersję i czas, tworzy konto ACTIVE/USER i zwraca 201 z cookie. E2E w PL/EN potwierdził przejście do własnego konta bez potwierdzania poczty. |
+| Poprawne i błędne logowanie, logout | Login akceptuje inną wielkość liter e-maila. Złe hasło i nieznany użytkownik dają ten sam 401. Logout unieważnia bieżący token i usuwa cookie. Testy API i E2E. |
+| Sesja po odświeżeniu, restarcie i wygaśnięciu | SessionService zapisuje sesję w PostgreSQL. Próba w Chromium z tym samym cookie po pełnym restarcie przeszła. Po 7 dniach token jest odrzucany, konto nieaktywne także traci dostęp. Test API wymusił datę wygaśnięcia w przeszłości. |
+| Reset przez Mailpit i neutralna odpowiedź | Link wysyłany na adres aktywnego konta w języku rejestracji. Dla nieznanego adresu również 202, bez wiadomości. Dwa rzeczywiste przepływy przez lokalny SMTP. |
+| Czas i jednorazowość resetu, unieważnienie sesji | Token ważny 30 minut. Testy odrzuciły wygasły i wykorzystany token; przy równoczesnym potwierdzeniu tylko jedna operacja wygrywa. Po zmianie hasła obie wcześniejsze sesje dały 401, stare hasło odrzucone. |
+| Publiczne wyprawy oraz prywatny dostęp | Listy i szczegóły dostępne anonimowo (odbiór 1). Prywatny GET auth/session wymaga sesji, odpowiedź no-store zawiera własny e-mail. Próba gościa na /account przekierowała do /login; dane konta są pobierane po stronie klienta. Publiczny HTML sprawdzony pod kątem braku własnego e-maila. |
+| Formularze PL/EN i błędy | AuthForm i tłumaczenia obsługują rejestrację, login, odzyskanie i reset. E2E przeszedł w obu językach. Przy różnym potwierdzeniu Chromium pokazał alert, zachował e-mail i pozwolił poprawić dane. HTML używa też natywnej walidacji wymaganych pól, długości i typu email; język natywnego komunikatu zależy od przeglądarki. |
+| Ochrona hasła, sesji i CSRF | Password4j Argon2id: 19456 KiB, 2 iteracje, równoległość 1, losowa sól 16 bajtów. Sesje i tokeny resetu mają 32 losowe bajty; w bazie SHA-256. Cookie sesji HttpOnly, SameSite=Lax, Path=/; w lokalnym HTTP bez Secure, poza dev/test z Secure. Zapisy wymagają tokenu CSRF i zgodnego Origin. Brak sesji w localStorage. Testy API i kontraktu cookie. |
+| Ograniczanie prób | Login 10/15 min na IP oraz na konto, rejestracja 5/h na IP, żądanie resetu 10/h na IP i 3/h na adres. Po przekroczeniu 429. Testy limitów i wygasania okna przeszły. Liczniki są lokalne dla procesu; za lokalnym proxy użytkownicy współdzielą IP. |
+
+**Wyniki automatyczne.** W osobnym projekcie Compose tb2a1124 utworzono nowy wolumen PostgreSQL i osobny Mailpit. Testy API używały schematu travel_buddy_test, a przeglądarka profilu dev na tej samej izolowanej instancji. Zwykłe środowisko autora pozostało uruchomione.
+
+- `./scripts/backend.sh test -Dtest=AuthResourceTest,RateLimiterTest -Dquarkus.http.test-port=28085` — **19/19**, 0 błędów i pominięć (18 metod API obejmuje także istniejące przypadki regresyjne, 1 test magazynu limitów).
+- `npm ci --offline --prefix frontend`, w frontend `npm run typecheck && npm run build` — zakończone poprawnie. `E2E_BASE_URL=http://localhost:3106 npx playwright test tests/auth.spec.ts` — **2/2**, 0 niezaliczonych. Wyłącznie w tymczasowej kopii istniejącego testu podstawiono porty 3106 i 28025 zamiast zaszytych 3000 i 8025. Asercje zachowano.
+- Dodatkowa próba w kopii: w frontend `node restart.mjs`, zatrzymanie Quarkusa przez Ctrl+C, potwierdzenie braku nasłuchu na 28084, ten sam start Quarkusa, `node restart.mjs --after`. Konto restart-probe@example.test dało **200 przed i 200 po restarcie**. Chromium odtworzył zapisane cookie, odświeżył /account i wyświetlił ten sam e-mail bez logowania. Po sprawdzeniu wykonano logout i usunięto tymczasowy plik sesji. **1/1 przebieg**, 0 niezaliczonych.
+- Brak stwierdzonego defektu blokującego 2A. Czas ważności sprawdzono przez kontrolowaną zmianę daty w testowej bazie. Reset działa z lokalnym SMTP; rzeczywista dostawa internetowa jest poza zakresem. Po otwarciu linku UI usuwa fragment tokenu z adresu. Po odświeżeniu formularza trzeba ponownie otworzyć oryginalny link.
+
+### Uruchomienie do ręcznego odbioru
+
+Przygotowana kopia działa na **http://localhost:3106**, skrzynka na **http://localhost:28025**, SMTP 21025, API 28084, PostgreSQL 25434. Użyj osobnego profilu przeglądarki i jednego adresu hosta localhost przez cały test. Cookies dla localhost są współdzielone między portami.
+
+Do wznowienia zatrzymanej kopii wykonaj poniższe polecenia w osobnych terminalach. W trakcie próby restartu zatrzymuj wyłącznie proces backendu audytowego. Jeśli prowadzi go asystent, pozostaw otwartą kartę konta i poproś o restart portu 28084.
+
+```sh
+# Terminal 1 — PostgreSQL i Mailpit
+cd /private/tmp/tb2a.5iq9Cz/repo
+docker compose -p tb2a1124 -f compose.audit.yaml up -d --wait
+
+# Terminal 2 — backend
+cd /private/tmp/tb2a.5iq9Cz/repo
+./scripts/backend.sh quarkus:dev -Dquarkus.http.port=28084 -Dauth.frontend-url=http://localhost:3106 -Dquarkus.mailer.port=21025 -Ddebug=false
+
+# Terminal 3 — zbudowany frontend
+cd /private/tmp/tb2a.5iq9Cz/repo
+HOST=127.0.0.1 PORT=3106 NUXT_BACKEND_URL=http://127.0.0.1:28084 node frontend/.output/server/index.mjs
+```
+
+Standardowe uruchomienie repozytorium po przygotowaniu .env według README: z katalogu głównego `docker compose up -d --wait`, osobno `./scripts/backend.sh quarkus:dev`, w frontend `npm ci && npm run dev`. Standardowe adresy to UI http://localhost:3000, Mailpit http://localhost:8025 i SMTP 127.0.0.1:1025.
+
+### Checklista przeglądarkowa autora
+
+Do prób użyj świeżego adresu, np. odbior-2411-a@example.test, hasła początkowego „Wyprawa listopad 123!” i nowego „Nowa wyprawa 456!”. Dla drugiego języka użyj innego adresu i odpowiednio /en/register, /en/login, /en/account oraz /en/forgot-password. Okna A i B muszą mieć oddzielne magazyny cookies (np. dwa profile).
+
+| Próba i warunek początkowy | Dane i kroki | Oczekiwany rezultat |
+|---|---|---|
+| 1. Gość, pusty profil A | Otwórz listę, kliknij Tatry, potem wpisz /account. | Lista i szczegóły są publiczne; prywatne dane pozostają niedostępne, ekran konta prowadzi do logowania. |
+| 2. Błędy formularza, A bez sesji | Na /register próbuj kolejno: pusty e-mail, „abc”, hasło „krótko”, różne długie hasła, brak zgody. Po każdym błędzie popraw pole. | Formularz pozostaje otwarty, wskazuje problem, dane można poprawić, konto nie powstaje. |
+| 3. Rejestracja, nowy adres | Wpisz poprawne dane, otwórz regulamin, zaznacz zgodę i zarejestruj. Odśwież stronę. | Natychmiast pojawia się własne konto z właściwym e-mailem, sesja przeżywa odświeżenie. |
+| 4. Duplikat, niezależne okno B | Zarejestruj ponownie ten sam adres zapisany wielkimi literami. | Komunikat o niedostępnym adresie, brak nowej sesji w B; konto A nadal działa. |
+| 5. Restart, A zalogowane | Zachowaj kartę i cookies. Zatrzymaj backend audytu w terminalu 2, ponów jego polecenie, poczekaj na start i odśwież /account. | Adres konta wciąż widoczny, aplikacja nie wymaga hasła. |
+| 6. Logout i login, A zalogowane | Wyloguj się, otwórz /account, spróbuj błędnego długiego hasła, potem poprawnego z e-mailem wielkimi literami. | Po logout prywatny widok niedostępny; błędne dane dają neutralny komunikat, poprawne logowanie przywraca konto. |
+| 7. Reset, konta A i B zalogowane na ten sam adres | Z /forgot-password wyślij żądanie najpierw dla brak@example.test, potem dla swojego konta. Otwórz Mailpit, wybierz wiadomość do swojego adresu. Zachowaj oryginalny link. Otwórz go i dwukrotnie wpisz nowe hasło. | Oba żądania dają neutralne potwierdzenie. Wiadomość dla istniejącego konta ma język rejestracji. Fragment tokenu znika z paska. Formularz potwierdza zmianę. |
+| 8. Unieważnienie, po próbie 7 | Odśwież /account w obu profilach. Ponownie użyj oryginalnego linku i spróbuj zatwierdzić reset. Na /login sprawdź stare i nowe hasło. | Obie wcześniejsze sesje odrzucone. Zużyty link i stare hasło odrzucone; nowe hasło działa. |
+| 9. Wygasły reset, nowy nieużyty link | Poproś o kolejny e-mail, odczekaj ponad 30 min, otwórz jego link i zatwierdź nowe hasło. | Komunikat o nieważnym linku; dotychczasowe hasło działa. |
+| 10. Limity, na końcu prób | W osobnym oknie wykonaj 11 prób błędnego logowania tym samym poprawnym adresem i długim błędnym hasłem w 15 min. | Po wyczerpaniu limitu pojawia się komunikat o zbyt wielu próbach, API daje 429. Wcześniejsze próby mogą skrócić drogę do limitu. |
+
+**Uwagi autora:** obie poprawki opisano poniżej. **Decyzja:** etap 2A odebrany.
+
+### Poprawki rejestracji po uwagach autora — 2A
+
+1. Usunięto stałą podpowiedź o długości hasła na stronach rejestracji PL/EN. Przy próbie wysłania zbyt krótkiego hasła przeglądarka wskazuje pole i pokazuje zakres 12–1024 w języku formularza. Wymagane pola, minlength, maxlength i walidacja backendu pozostają aktywne.
+2. Różne hasła zgłasza teraz natywna walidacja pola potwierdzenia (setCustomValidity). Poprawienie wartości usuwa błąd. Puste pole nadal podlega walidacji required.
+
+**Weryfikacja:** w audytowej kopii frontend przeszły `npm run typecheck`, `npm run build` i `E2E_BASE_URL=http://localhost:3106 npx playwright test tests/auth.spec.ts` (Chromium, 2/2, PL i EN). W każdej wersji sprawdzono brak stałej podpowiedzi, fokus i treść komunikatu dla krótkiego hasła oraz dla niezgodnego potwierdzenia, brak żądań rejestracji w obu błędnych próbach, wyczyszczenie błędu po korekcie i udaną rejestrację. Przeszła także dalsza część scenariuszy z logowaniem i resetem przez Mailpit.
+
+**Do odbioru:** otwórz /register lub /en/register na porcie 3106, podaj nowy e-mail i zaznacz zgodę. Spróbuj wysłać formularz kolejno z hasłami „krótko” w obu polach, „Wyprawa listopad 123!” i innym długim potwierdzeniem, a na końcu z identycznym poprawnym hasłem. Oczekiwane kolejno: komunikat przy haśle, komunikat przy potwierdzeniu, przejście do konta. Autor potwierdził wynik ponownego odbioru etapu 2A.
+
+## Etap 2B — Google OIDC
+
+**Ręczny odbiór przez autora: oczekujący.** Etap 2A odebrany. Podstawa analizy: PLAN, etap 2; DECISIONS, etap 2B; otwarty test rzeczywistego Google w STATUS. Na wejściu HEAD cb7b265 i lokalne zmiany odbioru 2A w dokumentacji, formularzu, tłumaczeniach i teście auth. W tym odbiorze zmieniono tylko dokumentację.
+
+### Wymagania i ocena
+
+| Wymaganie | Ocena | Działanie i dowód |
+|---|---|---|
+| Przyciski Google podczas logowania i rejestracji | Zaimplementowane | AuthForm pobiera google/config po zamontowaniu. Chromium sprawdził cztery formularze w działającym UI 3000. |
+| Rejestracja nowego użytkownika Google | Zaimplementowane | Kontrolowany callback utworzył konto ACTIVE/USER bez lokalnego hasła, wpis tożsamości i sesję. Nowa tożsamość wymaga zweryfikowanego, wolnego adresu. Sam tryb login nie tworzy konta. |
+| Zgoda na regulamin | Zaimplementowane | W PL i EN przycisk rejestracji aktywuje się po zaznaczeniu zgody. GoogleResource sprawdza zgodę i aktualne local-draft-2. Wersja i czas pochodzą z próby zapisanej po stronie serwera. |
+| Ponowne logowanie i identyfikacja | Zaimplementowane | GoogleAccounts wyszukuje parę issuer i subject. Ten sam subject powrócił do konta nawet po zmianie e-maila u dostawcy. Migracja V4 wymusza unikalność, a transakcja szereguje równoczesne tworzenie tożsamości. |
+| Konflikt z kontem na hasło | Zaimplementowane | Nowa tożsamość przy zajętym adresie dostała GOOGLE_EMAIL_CONFLICT. Test potwierdził zachowanie hasła i brak dopisanej tożsamości. |
+| Utworzenie i unieważnienie sesji | Zaimplementowane | Callback tworzy zwykłą sesję przez SessionService; odczyt konta zwrócił własny e-mail. Kolejne logowanie tworzy nowy token. Wspólną obsługę logout, odrzucenie wylogowanej i wygasłej sesji sprawdził AuthResourceTest. Wylogowanie dotyczy aplikacji; przeglądarka może nadal pamiętać konto Google. |
+| Anulowanie | Zaimplementowane | Test lokalnego dostawcy sprawdza obsługę odmowy. Strona wyniku wyświetla komunikat anulowania; osobno sprawdzono jej treść PL/EN w Chromium. |
+| Konta nieaktywne i zablokowane | Zaimplementowane | Istniejąca tożsamość w stanach BLOCKED i DELETION_PENDING dostała GOOGLE_ACCOUNT_BLOCKED. |
+| Wyłączone OIDC | Zaimplementowane | Na 3106 integracja wyłączona. Oba E2E przeszły bez przycisku Google i z działającym logowaniem na hasło. |
+| Komunikaty i język | Zaimplementowane | Strona google-result tłumaczy dozwolone kody, w tym konflikt, anulowanie i wymóg rejestracji; inne mapuje na ogólny błąd. Ograniczenie: błąd samego POST start w AuthForm ma komunikat ogólny, np. przy limicie prób. |
+
+**Ochrona poświadczeń.** Quarkus realizuje Authorization Code z PKCE S256, state i nonce. Weryfikuje podpis przez JWKS, issuer, audience i ważność ID tokenu. Żądanie startu wymaga CSRF i zgodnego Origin. Powiązanie próby z cookie HttpOnly i state obowiązuje przez 10 minut. Restart procesu przerywa rozpoczętą próbę. Ograniczenie startu to 10 prób na 15 minut na IP. DiscardOidcTokens nie utrwala tokenów dostawcy; aplikacja używa własnego cookie sesji. Proxy przekazuje przekierowania i cookies, a odpowiedzi uwierzytelniania mają no-store. Główny .env jest ignorowany przez Git. Potwierdzono obecność ustawień bez wypisywania poświadczeń.
+
+### Sprawdzenia
+
+- Osobna instancja PostgreSQL projektu tb2a1124 na 25434, schemat travel_buddy_test. W kopii audytowej wykonano `./scripts/backend.sh test -Dtest=GoogleOidcTest,AuthResourceTest,RateLimiterTest -Dquarkus.http.test-port=28085`. **29/29**, zero błędów i pominięć: 10 OIDC z testowym OidcProvider, 18 API kont i sesji, 1 limiter. Testowy dostawca uruchamia lokalne discovery, JWKS i wymianę kodu. Objęto także ponowne uwierzytelnienie i równoległe callbacki.
+- `node scripts/check-google-proxy.mjs` — zaliczony. Kontrolowany upstream potwierdził przekazanie query, Cookie, Set-Cookie, Origin, Location oraz no-store przez zbudowanego Nuxta.
+- W frontend kopii audytowej `E2E_BASE_URL=http://localhost:3106 npx playwright test tests/auth.spec.ts` — **2/2**, PL i EN, przy wyłączonym OIDC, z lokalnym Mailpit. Kopia ma podstawienia portów 3106/28025 opisane przy 2A.
+- Odczyt `GET /api/v1/auth/google/config` — na 3000 enabled=true, na 3106 enabled=false. Dodatkowy przebieg Chromium na 3000 sprawdził widoczność i stan przycisku na login/register w PL i EN oraz tekst anulowania na obu stronach wyniku. Nie wysyłano formularza do Google. **Rzeczywista autoryzacja przez Google: do wykonania przez autora.**
+
+### Konfiguracja i start
+
+**Do ręcznego odbioru użyj http://localhost:3000.** W głównym lokalnym .env włączono Google i ustawiono Client ID oraz Client secret. Redirect URI w pliku jest zgodny z poniższym adresem. Stan procesu potwierdza publiczny endpoint config. Ważność sekretu, konfiguracja klienta w konsoli Google i uprawnienie wybranego konta testowego wymagają rzeczywistego powrotu z Google. Na porcie 3106 działa wariant bez Google, z osobną bazą.
+
+Jeśli właściciel musi uzupełnić lub odtworzyć konfigurację:
+
+1. W swoim projekcie w Google Cloud Console otwórz Google Auth Platform → Branding. Uzupełnij nazwę aplikacji, adres wsparcia i kontakt. W Audience dla zewnętrznych użytkowników pozostaw Testing i dodaj uprawnione adresy testowe. W Data Access sprawdź zakresy openid, email i profile. [Konfiguracja ekranu zgody Google](https://developers.google.com/workspace/guides/configure-oauth-consent)
+2. W Clients wybierz klienta typu Web application lub utwórz taki klient. Do Authorized redirect URIs wpisz dokładnie `http://localhost:3000/api/v1/auth/google/callback`. [Instrukcja klienta webowego Google](https://developers.google.com/identity/protocols/oauth2/web-server)
+3. W głównym lokalnym .env ustaw `GOOGLE_OIDC_ENABLED=true`, `GOOGLE_OIDC_CLIENT_ID`, `GOOGLE_OIDC_CLIENT_SECRET` z tego samego klienta oraz `GOOGLE_OIDC_REDIRECT_URI=http://localhost:3000/api/v1/auth/google/callback`. Zachowaj istniejące ustawienia bazy. Poświadczenia uzupełnij lokalnie.
+4. Po zmianie konfiguracji zatrzymaj główny Quarkus przez Ctrl+C w jego terminalu i z katalogu głównego uruchom `./scripts/backend.sh quarkus:dev`. Przy starcie od zera najpierw `docker compose up -d --wait`, a w osobnym terminalu w frontend/ `npm run dev`. Sprawdź `curl -fsS http://localhost:3000/api/v1/auth/google/config` i odśwież formularz.
+
+### Checklista rzeczywistego Google
+
+Użyj osobnego profilu przeglądarki dla portu 3000. Przygotuj uprawnione konto Google A z wolnym adresem w tej bazie oraz drugie konto Google B, którego adres posłuży do kontrolowanego konfliktu. Konto A po rejestracji pozostanie w lokalnej bazie.
+
+| Warunki początkowe | Kroki | Oczekiwany rezultat |
+|---|---|---|
+| Gość, nowe A | Na /register i /en/register sprawdź przycisk przed i po zaznaczeniu regulaminu. Na wybranej stronie kliknij przycisk po zgodzie, wybierz A u Google i zaakceptuj. | Etykieta w języku strony; start rejestracji dopiero po zgodzie. Powrót do /account lub /en/account z adresem A. |
+| A zalogowane | Odśwież konto, otwórz je w drugiej karcie tego profilu, po czym wyloguj w pierwszej i odśwież drugą. | Przed logout oba widoki mają ten sam e-mail. Po logout prywatny ekran wymaga logowania. |
+| A zarejestrowane, sesja aplikacji zakończona | Na /en/login wybierz Continue with Google i to samo A. Powtórz w PL po wylogowaniu. | Powrót do tego samego konta w języku formularza, bez ponownej rejestracji. |
+| Gość, ekran Google umożliwia odmowę | Rozpocznij logowanie, anuluj na ekranie dostawcy. Powtórz w drugim języku, w razie potrzeby użyj świeżego profilu i konta bez wcześniejszej zgody. | Po powrocie z odmową komunikat „Logowanie anulowane.” lub „Sign-in cancelled.”, brak sesji. Samo zamknięcie karty nie wysyła callbacku. |
+| B ma konto lokalne założone hasłem, bez powiązania Google | Wyloguj B. Na ekranie login wybierz Google B; sprawdź też próbę przez register ze zgodą. Następnie zaloguj się dotychczasowym hasłem. | Komunikat o zajętym adresie, brak sesji Google w aplikacji; lokalne hasło nadal działa. |
+| Kopia 3106, Google wyłączone | Otwórz /login i /register oraz warianty /en. | Widoczne formularze lokalne, przycisk Google ukryty. |
+
+**Uwagi autora i ostateczna decyzja 2B:** oczekujące.

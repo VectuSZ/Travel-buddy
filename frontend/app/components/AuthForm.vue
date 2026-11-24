@@ -6,6 +6,19 @@ const { post, load } = useAuth()
 const email = ref('')
 const password = ref('')
 const confirmation = ref('')
+const passwordField = useTemplateRef<HTMLInputElement>('passwordField')
+const confirmationField = useTemplateRef<HTMLInputElement>('confirmationField')
+
+watchPostEffect(() => {
+  if (props.mode !== 'register') return
+  const lengthError = (value: string) => value && (value.length < 12 || value.length > 1024)
+    ? t('auth.passwordLength') : ''
+  passwordField.value?.setCustomValidity(lengthError(password.value))
+  const mismatch = confirmation.value && confirmation.value !== password.value
+  confirmationField.value?.setCustomValidity(lengthError(confirmation.value) ||
+    (mismatch ? t('auth.errors.PASSWORD_MISMATCH') : ''))
+})
+
 const accepted = ref(false)
 const googleEnabled = ref(false)
 const busy = ref(false)
@@ -32,7 +45,7 @@ async function google() {
 }
 async function submit() {
   errorCode.value = ''
-  if (newPassword.value && password.value !== confirmation.value) { errorCode.value = 'PASSWORD_MISMATCH'; return }
+  if (props.mode === 'reset' && password.value !== confirmation.value) { errorCode.value = 'PASSWORD_MISMATCH'; return }
   busy.value = true
   try {
     if (props.mode === 'register') {
@@ -55,9 +68,9 @@ async function submit() {
   <div v-if="done" role="status"><p>{{ t(mode === 'forgot' ? 'auth.resetSent' : 'auth.resetDone') }}</p><NuxtLink :to="localePath('/login')">{{ t('auth.login') }}</NuxtLink></div>
   <form v-else @submit.prevent="submit"><fieldset :disabled="!hydrated || busy">
     <label v-if="mode !== 'reset'">{{ t('auth.email') }}<input v-model="email" type="email" name="email" autocomplete="email" maxlength="254" required></label>
-    <label v-if="mode !== 'forgot'">{{ t('auth.password') }}<input v-model="password" type="password" name="password" :autocomplete="newPassword ? 'new-password' : 'current-password'" minlength="12" maxlength="1024" required></label>
-    <p v-if="newPassword">{{ t('auth.passwordHint') }}</p>
-    <label v-if="newPassword">{{ t('auth.confirmation') }}<input v-model="confirmation" type="password" name="confirmation" autocomplete="new-password" minlength="12" maxlength="1024" required></label>
+    <label v-if="mode !== 'forgot'">{{ t('auth.password') }}<input ref="passwordField" v-model="password" type="password" name="password" :autocomplete="newPassword ? 'new-password' : 'current-password'" minlength="12" maxlength="1024" required></label>
+    <p v-if="mode === 'reset'">{{ t('auth.passwordHint') }}</p>
+    <label v-if="newPassword">{{ t('auth.confirmation') }}<input ref="confirmationField" v-model="confirmation" type="password" name="confirmation" autocomplete="new-password" minlength="12" maxlength="1024" required></label>
     <label v-if="mode === 'register'" class="checkbox"><input v-model="accepted" type="checkbox" required> {{ t('auth.accept') }} <NuxtLink :to="localePath('/terms')" target="_blank">{{ t('auth.terms') }}</NuxtLink> (local-draft-2)</label><NuxtLink v-if="mode === 'register'" :to="localePath('/privacy')">{{ t('legal.privacy') }}</NuxtLink>
     <p v-if="errorCode" role="alert">{{ t('auth.errors.' + errorCode) }}</p>
     <button type="submit" :disabled="busy">{{ busy ? t('loading') : t('auth.' + mode) }}</button>

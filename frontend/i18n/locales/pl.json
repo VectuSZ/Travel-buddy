@@ -21,6 +21,7 @@
     "confirmation": "Potwierdź hasło",
     "accept": "Akceptuję",
     "terms": "Lokalny regulamin roboczy",
+    "passwordLength": "Hasło musi mieć od 12 do 1024 znaków.",
     "passwordHint": "Od 12 do 1024 znaków. Możesz użyć długiej frazy.",
     "resetSent": "Jeśli aktywne konto z hasłem istnieje, wyślemy link do resetu. Sprawdź lokalny Mailpit.",
     "resetDone": "Hasło zostało zmienione. Zaloguj się ponownie.",
