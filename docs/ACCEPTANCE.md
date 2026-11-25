@@ -268,3 +268,30 @@ Użyj osobnego profilu przeglądarki dla portu 3000. Przygotuj uprawnione konto 
 | Kopia 3106, Google wyłączone | Otwórz /login i /register oraz warianty /en. | Widoczne formularze lokalne, przycisk Google ukryty. |
 
 **Uwagi autora i ostateczna decyzja 2B:** oczekujące.
+
+### Ponowny odbiór na nowym Macu — 25 listopada 2026
+
+Bieżący checkout to b4aef87. Etapy 1 i 2A odebrane przez autora, 2B oczekuje na próbę rzeczywistego Google. Wpisy o procesach na portach 3106/28084 oraz o aktywnym kliencie Google powyżej dotyczą poprzedniego komputera. Tutaj używamy localhost:3000, backendu 8080, PostgreSQL 5433 i Mailpit 8025 (SMTP 1025). Utworzono lokalny ignorowany plik .env z przykładu. Dane klienta Google trzeba przenieść osobno.
+
+**Konfiguracja właściciela.** W istniejącym projekcie Google Auth Platform → Clients wybierz dotychczasowego klienta Web application. W Authorized redirect URIs zapisz dokładnie `http://localhost:3000/api/v1/auth/google/callback`. Dla External w trybie Testing dodaj uprawnione adresy A i B w Audience → Test users. W lokalnym .env ustaw GOOGLE_OIDC_CLIENT_ID i GOOGLE_OIDC_CLIENT_SECRET z bezpiecznie zachowanej konfiguracji klienta. Jeśli stary sekret jest zamaskowany i nie masz kopii, w szczegółach tego klienta dodaj nowy sekret i zapisz go lokalnie. Pozostaw dotychczasowy sekret używany przez inne instalacje. Ustaw GOOGLE_OIDC_ENABLED=true, uruchom ponownie backend i sprawdź na porcie 3000, że GET /api/v1/auth/google/config daje enabled=true.
+
+**Próby na tej instalacji** (osobny profil przeglądarki, localhost w całym przebiegu):
+
+1. Przy wyłączonym Google otwórz /login i /register w PL i EN. Sprawdź brak przycisku Google i dostępność formularza hasła. Utwórz konto lokalne B przez /register, używając adresu drugiej kontrolowanej tożsamości Google. Wyloguj się.
+2. Po włączeniu integracji spróbuj logowania nowym A na /login. Oczekuj wskazania rejestracji. Na /register sprawdź blokadę przycisku przed zgodą. Zaakceptuj regulamin, wybierz A u Google i sprawdź adres na /account.
+3. Odśwież konto i zrestartuj backend. Sprawdź utrzymanie sesji. Wyloguj się i odśwież drugą kartę konta. Dostęp powinien ponownie wymagać logowania. Zaloguj A przez /en/login, sprawdź powrót na /en/account z tym samym adresem.
+4. Wyloguj się. W PL i EN odmów zgody na ekranie Google, jeżeli oferuje odmowę. Sprawdź komunikat anulowania oraz brak dostępu do konta. Zamknięcie karty pomija callback.
+5. Spróbuj zalogować i zarejestrować B przez Google. Sprawdź komunikat o konflikcie oraz możliwość dalszego logowania hasłem. Powtórz w drugim języku.
+6. Jeżeli dysponujesz uprawnionym moderatorem i przeznaczonym do tej próby kontem Google, zablokuj to konto w panelu moderacji. Sprawdź utratę dostępu oraz komunikat nieaktywnego konta przy ponownym logowaniu Google w PL i EN. Odblokuj konto po próbie. Scenariusz automatyczny inactiveAccountCannotSignIn obejmuje odmowę nowej sesji.
+
+**Wyniki z tego komputera.** Java 21.0.13.1, Maven Wrapper 3.9.11, Node 24.22.3, npm 11.19.1, Docker Engine 29.9.3 i Compose 5.7.1. Początkowe listy kontenerów i wolumenów były puste. Obie usługi healthy. Na bazie travel_buddy sprawdzono 13 udanych migracji i dwie wyprawy demo, readiness JDBC UP oraz Mailpit HTTP 200. Tryb dev używa lokalnego symulatora Turnstile, sesji w PostgreSQL z cookie session na HTTP i SMTP 127.0.0.1:1025. Sprzątanie prób Google działa co minutę, sesji i danych prywatności co godzinę. W repozytorium brak osobnej konfiguracji uruchomieniowej IntelliJ.
+
+Na osobnej bazie travel_buddy_acceptance_2b uruchomiono:
+
+```sh
+./scripts/backend.sh test -Dtest=GoogleOidcTest,AuthResourceTest,RateLimiterTest -Dquarkus.datasource.jdbc.url=jdbc:postgresql://127.0.0.1:5433/travel_buddy_acceptance_2b
+```
+
+Wynik 29/29, w tym 10 Google, 18 kont i sesji, 1 limitera. Zero błędów i pominięć. npm ci, build Nuxta oraz node scripts/check-google-proxy.mjs przeszły. Playwright tests/auth.spec.ts wykonano w obu językach na tej samej osobnej bazie, z pomocniczym backendem na 28084 i zbudowanym Nuxtem na 3000. Pierwsza próba 0/2 przekroczyła pięciosekundowy czas asercji przejścia na konto (PL) i komunikatu resetu (EN). Powtórzenie po zakończeniu startu usług, bez zmiany testu, dało 2/2 w 19 sekund. Przyczyna pierwszych opóźnień nieustalona. Próba z rzeczywistymi poświadczeniami Google pozostaje otwarta.
+
+Na docelowym Nuxt dev na localhost:3000 odczyt google/config zwrócił enabled=false. Skrypt node scripts/check-ssr.mjs potwierdził listy i szczegóły w PL i EN (4/4).

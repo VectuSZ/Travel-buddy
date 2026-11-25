@@ -401,10 +401,10 @@ privacy.moderation-months, privacy.cleanup-interval,
 privacy.reauthentication-seconds. Wartości domyślne: 50, 12, 12, 1h, 300.
 
 Logi: aplikacja używa konsoli, brak zarządzanego pliku i gwarancji 14 dni
-dla zapisu terminala/IDE. Etap 8 musi skonfigurować 14-dniowe wygaszanie
+dla zapisu terminala/IDE. Etap 9 musi skonfigurować 14-dniowe wygaszanie
 logów wszystkich warstw, z wyłączeniem haseł, tokenów, kontaktów i wiadomości.
 Backupy: lokalny wolumen pozostaje; brak produkcyjnych kopii w tym etapie.
-Etap 8: 7 kopii dziennych + 4 tygodniowe (maks. ok. 35 dni), osobny minimalny
+Etap 9: 7 kopii dziennych + 4 tygodniowe (maks. ok. 35 dni), osobny minimalny
 rejestr wykonanych usunięć przez czas życia kopii i obowiązkowe ponowienie
 usunięć po restore, przed otwarciem ruchu. Bieżąca kolejka nie zastępuje
 tego rejestru. Test odtworzenia i kontroli usunięć jest bramką wdrożenia.
@@ -428,3 +428,12 @@ Listy PL/EN i strony informacyjne mają własne canonical i hreflang.
 - Wybór, filtr i zapis kraju mają wspólny identyfikator ISO 3166-1 alpha-2. Lokalny słownik zawiera 249 kodów, grupy geograficzne i aliasy wyszukiwania. Nazwy krajów pobieramy z lokalnego Intl.DisplayNames dla PL i EN. Nazwy kontynentów są zapisane jawnie, ponieważ obsługa numerycznych kodów regionów różni się między przeglądarką a Node.
 - Na potrzeby kart przypisujemy jeden kontynent do kraju lub terytorium. Rosję pokazujemy w Europie, Turcję, Kazachstan, Gruzję, Armenię, Azerbejdżan i Cypr w Azji, Egipt w Afryce. Terytoria mają własne wpisy, np. Grenlandia należy na karcie do Ameryki Północnej, a Gujana Francuska do Południowej. To konwencja prezentacji. Powtarzające się kraje i kontynenty pokazujemy raz, w kolejności pierwszego wystąpienia.
 - Pole remainingPlaces w publicznych szczegółach korzysta z tej samej reguły co zapis zgłoszenia. Organizator i każda zaakceptowana osoba zajmują po jednym miejscu. Ostateczna kontrola dostępności przy zapisie nadal odbywa się w transakcji backendu.
+
+## 2026-11-25 — rozszerzenie produktu przed zamkniętą betą
+
+- Na podstawie badań autora rozszerzamy plan o dobór towarzystwa, stopniowe budowanie zaufania i przygotowania do wyjazdu. Znaczenie relacji dla głównej grupy docelowej oraz wpływ porównań i checklisty na decyzję o wyjeździe to hipotezy do sprawdzenia w wywiadach podczas bety. Zachowujemy opcjonalność preferencji i samodzielny wybór.
+- Najpierw kończymy odbiór 1–7B. Etap 8 rozwijamy lokalnie w obecnym modularnym monolicie. Hosting i beta otrzymują numer 9.
+- Potwierdzamy konkretną informację o koncie. Opinie dotyczą doświadczeń zadeklarowanych przez obie strony. Porównania pokazują jawne wartości bez automatycznej oceny bezpieczeństwa człowieka.
+- Rozmowa przez REST jest możliwa przed decyzją. Rezerwacja miejsca, wzajemna akceptacja wersji ustaleń, jednostronna zgoda na ujawnienie kanału kontaktowego i powyjazdowa deklaracja to odrębne decyzje. Blokada odbiera dostęp. Moderator otrzymuje ograniczony materiał powiązany ze sprawą.
+- Prywatna checklista pozostaje pod kontrolą uczestnika. Kosztorys służy uzgodnieniu szacunku na osobę w PLN. Reguły migracji, uprawnień i odbioru opisano w [planie](PLAN.md).
+- Autor przed implementacją zatwierdzi okres historii rozmów i zakres dowodu, czas rezerwacji bez potwierdzenia, widoczność preferencji i historii oraz dzielnik kosztów. Przed betą zatwierdzi procedury moderacji, treść dokumentów i budżet usług.

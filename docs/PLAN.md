@@ -1,6 +1,6 @@
 # Plan budowy platformy do wspólnych podróży
 
-Wersja: 1.1 — 2026-11-06. Robocza nazwa: **Travel Buddy**.
+Wersja: 1.2 — 2026-11-25. Robocza nazwa: **Travel Buddy**.
 
 Docelowe miejsce w repozytorium: `docs/PLAN.md`.
 
@@ -9,7 +9,7 @@ Docelowe miejsce w repozytorium: `docs/PLAN.md`.
 **Najpierw budujemy i testujemy produkt wyłącznie lokalnie na macOS. Wdrożenie nastąpi dopiero, gdy produkt będzie użyteczny.**
 
 - Setup narzędzi i lokalnego repozytorium został wykonany przez autora. Nie zakładaj, że istnieje już kod aplikacji — sprawdź repozytorium.
-- Etapy 1, 2A i 2B są zaimplementowane lokalnie. Etap 3 (profil podróżnika i prywatne kontakty) został zaimplementowany i zweryfikowany lokalnie 2026-11-13; zakres i wyniki weryfikacji znajdują się w README. Kolejne etapy pozostają poniżej jako plan, nie jako wykonane funkcje.
+- Etapy 1–7B są zaimplementowane lokalnie. Autor odebrał 1 i 2A, obecnie odbiera 2B. Stan odbiorów dokumentują STATUS.md i ACCEPTANCE.md.
 - Ten dokument opisuje cały kierunek produktu. **Nie jest poleceniem implementacji całego MVP w jednym zadaniu.** Realizuj tylko etap wskazany w aktualnym poleceniu.
 - Instrukcje pracy z kodem znajdują się w głównym `AGENTS.md`.
 - Istotne decyzje i odstępstwa zapisuj w `docs/DECISIONS.md`, a rzeczywiste polecenia uruchamiania w `README.md`.
@@ -37,7 +37,9 @@ Platforma, na której ludzie publikują ustrukturyzowane plany podróży i szuka
 
 Projekt hobbystyczny jednej osoby znającej Java/Quarkus, JavaScript/Vue i SQL. Celem jest szybko działający produkt, następnie walidacja zainteresowania i ewentualna monetyzacja.
 
-### 1.2. Zakres MVP 1.0
+Badania autora dotyczące wyboru towarzysza, zaufania, wsparcia społecznego oraz barier organizacyjnych i finansowych wyznaczają trzy cele: znalezienie wyprawy i współpodróżnika, stopniowe budowanie zaufania i ograniczanie ryzyka oraz przygotowanie wspólnego wyjazdu. Hipotezą do walidacji jest główna grupa odbiorców: osoby chcące podróżować, którym brakuje odpowiedniego towarzystwa, szczególnie ceniące wspólne doświadczenia i relacje. W becie zapytamy o motywację, sposób wyboru i przydatność ustaleń. Uczestnicy sami ustalają sposób podróżowania i poziom niezależności.
+
+### 1.2. Zakres dotychczasowego MVP (1–7B)
 
 1. Rejestracja i logowanie: e-mail + hasło oraz Google OIDC. Bez obowiązkowego potwierdzenia e-maila; przygotowanie do dodania później. Odzyskiwanie hasła jako niezbędne domknięcie lokalnego logowania.
 2. Profil: pseudonim/imię, deklarowany wiek, języki, style podróżowania, bio oraz prywatne kontakty: Instagram, WhatsApp, e-mail.
@@ -407,9 +409,7 @@ Usunięcie obejmuje profil, kontakty, sesje, tożsamości, tokeny, zgłoszenia i
 
 ### 5.1. Organizacja czasu
 
-Szacunki są orientacyjne, dla jednej osoby znającej stack, pracującej z AI. Etapy 1–7: ok. **84 h**, etap późniejszego wdrożenia: **10 h**. Rezerwa na integrację i poprawki: **20 h**. Całość ok. **114 h**.
-
-Przy 18–20 h tygodniowo to ok. 6 tygodni; przy 10 h — ok. 10–12 tygodni. Pierwsza demonstracja ma powstać po etapie 1. Wdrożenie nie jest wymagane do ukończenia etapów lokalnych.
+Dla jednej osoby pierwotny szacunek 1–7B wynosił 84 h. Plan 8A–8H dodaje 156–240 h, a etap 9 po rozszerzeniu odbioru wymaga 16–24 h. Z rezerwą 20 h daje to **276–368 h od początku projektu**, w tym **192–284 h po odbiorze MVP** (około 10–16 tygodni przy 18–20 h tygodniowo). Czas pozostałych odbiorów autora i wynikających z nich napraw jest nieznany.
 
 Wspólna zasada dla każdego promptu:
 
@@ -580,22 +580,91 @@ produkcyjnej. Podaj gotowość lokalnego MVP i listę realnych braków.
 
 ### Bramka przed etapem 8
 
-Autor ręcznie sprawdza główny proces na co najmniej dwóch kontach, czytelność UI na telefonie i użyteczność formularza. Dopiero potem podejmuje decyzję o wdrożeniu. Bramka nie blokuje lokalnych poprawek.
+Autor zakończył odbiór 1 i 2A. Trwa odbiór 2B, w tym próba z rzeczywistym Google. Następnie autor odbiera 3, 4, 5, 6, 7A i 7B, w tym główny proces na dwóch kontach oraz formularze na telefonie. Implementacja 8A zaczyna się po odbiorze całego dotychczasowego MVP.
 
-### Etap 8 — późniejsze wdrożenie i beta
+### Etap 8 — Bezpieczeństwo, zaufanie, dopasowanie i przygotowanie podróży
 
-**Czas: 10 h + ewentualny bufor. Cel:** uruchomienie, backup i odtworzenie.
+Punktem wyjścia są migracje V1–V13, moduły auth, profiles i moderation oraz TripService i ApplicationService. Rozdziały 2–4 i polecenia dla etapów 1–7 opisują pierwotny zakres. Poniższe reguły wprowadzamy kolejno w modularnym monolicie Quarkusa, PostgreSQL i Nuxt. Ścieżki API są względne wobec `/api/v1`.
+
+**Wspólne warunki odbioru.** Każdy etap wymaga migracji Flyway sprawdzonej na kopii schematu z danymi poprzedniego etapu, walidacji Hibernate, testów integracyjnych na PostgreSQL i przeglądarkowych PL/EN. Stosujemy istniejące sesje, CSRF/Origin przy zapisie i kontrolę aktywności konta. Prywatne odpowiedzi wymagają kontroli relacji przy każdym żądaniu, osobnych DTO i Cache-Control: no-store. Sprawdzamy anonimowy HTML, payload SSR i logi pod kątem prywatnych danych. Rozszerzamy zadania 7A i kolejność kasowania zależności w tej samej zmianie co tabela. Testujemy DELETION_PENDING, ponowienie zadania i sprzątanie po terminie. Aktualizujemy obie wersje regulaminu i polityki prywatności przy zmianach celu, odbiorców, widoczności lub czasu przechowywania danych. Każde polecenie poniżej obejmuje też wspólną instrukcję z §5.1. Szacunki obejmują implementację i odbiór techniczny jednej osoby. Wszystkie 8A–8H można wykonać lokalnie bez zakupu usług.
+
+#### Etap 8A — Wiarygodność konta (12–18 h)
+
+- **Dane i migracja.** Zachowaj users.created_at i email_verified_at, także dla istniejących kont Google. Konto lokalne z NULL potwierdza adres przez Mailpit. Rozszerz ograniczenie auth_tokens.purpose o EMAIL_VERIFY, wykorzystaj unikalny hash, indeksy użytkownika i wygaśnięcia oraz sprzątanie 7A. Oddziel tokeny resetu od weryfikacji. Google korzysta z zaufanego email_verified dla tego samego adresu oraz istniejącego wiązania issuer/subject. Bez zbiorczego potwierdzania i łączenia kont po adresie.
+- **API i UI.** Aktywny użytkownik żąda wiadomości przez POST /me/email-verification, ponowienie z limitem unieważnia wcześniejszy token. POST /auth/email-verification/confirm zużywa jednorazowy token ograniczony czasowo w transakcji. Sprawdzaj potwierdzenie po stronie serwera przy publikacji i nowym zgłoszeniu. Istniejące wyprawy i zgłoszenia zachowują stan. Pokaż datę dołączenia i etykietę „Potwierdzony adres e-mail” z objaśnieniem PL/EN, bez publikacji adresu. Każdy przyszły rodzaj potwierdzenia telefonu lub ID otrzyma własną etykietę.
+- **Odbiór.** Integracyjnie sprawdź stare konto lokalne, konto Google, niewłaściwy cel tokenu, wygaśnięcie i dwa równoczesne użycia. E2E przeprowadź użytkownika od odmowy publikacji lub zgłoszenia przez wiadomość do powodzenia obu akcji. Koszt po wdrożeniu zależy od liczby wysyłek.
+- **Polecenie:** „Po odbiorze 1–7B wykonaj lokalnie 8A według PLAN.md. Rozszerz auth_tokens, zabezpiecz obie akcje i sprawdź ścieżki Mailpit oraz Google.”
+
+#### Etap 8B — Rozbudowane profile, preferencje i filtry (18–28 h)
+
+- **Dane.** Rozszerz traveler_profiles o opcjonalne tempo, standard noclegu, poziom wydatków, doświadczenie, zainteresowania i aktywności, planowanie/spontaniczność, proporcję czasu razem i osobno, stosunek do palenia, alkoholu i dzielenia pokoju. Zachowaj version, języki i style. W trips dodaj tempo, transport, nocleg, oczekiwania, elastyczność i czas indywidualny/wspólny. Stare rekordy mają NULL. Użyj stabilnych kodów i ograniczonych list wartości, osobnych od tłumaczeń. Osobne tabele nie są potrzebne. Dla popularnych filtrów sprawdź EXPLAIN i zasadność częściowego indeksu otwartych, widocznych wypraw.
+- **API i UI.** Rozszerz GET /me, PATCH /me/profile, POST /trips i PATCH /trips/{id} dla właściciela oraz publiczne DTO GET /profiles/{id} i GET /trips/{id} o świadomie opublikowane pola i GET /trips o opcjonalne filtry tempa, transportu, noclegu i czasu razem. Brak kryterium zachowuje dotychczasowe wyniki, aktywny filtr wymaga znanej zgodnej wartości. W edytorach PL/EN pokaż zwijaną sekcję i podgląd widoczności. Rejestracja i minimalna publikacja zachowują długość.
+- **Odbiór po 8A.** Test API łączy stare filtry budżetu i kraju z nowymi, sprawdza NULL, błędne kody i zakaz cudzej edycji. E2E publikuje minimalną wyprawę, uzupełnia jej tempo i odnajduje ją po filtrze w obu językach. Koszt utrzymania zależy od rozmiaru indeksów.
+- **Polecenie:** „Wykonaj lokalnie 8B według PLAN.md. Rozszerz istniejące DTO, edytory i wyszukiwanie, sprawdź migrację starych profili i publikację bez preferencji.”
+
+#### Etap 8C — Komunikacja i blokowanie (28–42 h)
+
+- **Dane.** applications jest granicą prywatnej rozmowy organizator–zgłaszający. Zachowaj pierwotne applications.message jako pierwszą wypowiedź bez duplikowania. Dodaj messages z FK zgłoszenia i autora, indeksem (application_id,created_at,id), kursory odczytu unikalne dla zgłoszenia i czytelnika oraz user_blocks z unikalną skierowaną parą i indeksem odwrotnym. Blokada działa w obu kierunkach także między różnymi wyprawami.
+- **API i UI.** GET /me/conversations zwraca listę i liczniki. GET/POST /applications/{id}/messages oraz PUT /applications/{id}/read obsługują stronicowanie i okresowe odświeżanie. Pisać mogą obie strony od PENDING do zakończenia udziału. Po odrzuceniu, wycofaniu lub zakończeniu pozostaje historia tylko do odczytu. PUT/DELETE /me/blocks/{user} obsługuje właściciel blokady. Aktywna blokada natychmiast wyłącza odczyt historii, wysyłkę i endpoint kontaktów. Wyłącz powiadomienia i liczniki dla tej pary. Formularze PL/EN udostępniają blokadę i raport także z widoku rozmowy.
+- **Moderacja i retencja.** Przed blokadą lub w tej samej operacji strona może zgłosić rozmowę albo wskazane wiadomości przez POST /reports. Serwer sprawdza członkostwo i pochodzenie każdego dowodu. Tabela report_evidence z FK/indeksem report_id przechowuje ograniczony wycinek, także po skasowaniu źródła. Tylko ADMIN obsługujący sprawę ma audytowany dostęp. Propozycja: usuń treść i kursory 90 dni po zakończeniu relacji, obejmij również pierwszą wiadomość (umożliw jej wyczyszczenie). Sprawdź też projekcje wiadomości w istniejących listach zgłoszeń, aby blokada i usunięcie treści działały na wszystkich ścieżkach. Przy usunięciu konta usuń wątek i blokady, zminimalizuj dowód według 7A i usuń z zakończoną sprawą po 12 miesiącach.
+- **Odbiór po 8B.** API sprawdza obcy identyfikator wiadomości, blokadę podczas wysyłki, brak kontaktów mimo ACCEPTED, uprawnienia do dowodu i granice retencji. E2E na trzech kontach sprawdza rozmowę przed decyzją, odczyt licznika, raport i blokadę. Koszt zależy od ruchu odpytywania, miejsca na treść i czasu moderatora.
+- **Polecenie:** „Wykonaj lokalnie 8C według PLAN.md. Powiąż rozmowę ze zgłoszeniem, wdroż blokady, dowody i retencję oraz sprawdź dostęp na trzech kontach.”
+
+#### Etap 8D — Potwierdzenie wspólnej podróży (30–46 h)
+
+- **Model i migracja.** Zachowaj statusy applications z V10. ACCEPTED rezerwuje miejsce. Dodaj niezmienne trip_agreements z UNIQUE(trip_id,version), migawką terminu, kierunku, podstawowych kosztów i statusem wersji oraz agreement_confirmations z unikalnym kluczem (application_id,agreement_id,user_id). Obie strony akceptują tę samą wersję. Osobne contact_consents dla zgłoszenia, właściciela i kanału mają znacznik wycofania. Dla starych akceptacji utwórz wersję z obecnych warunków, bez domniemanych potwierdzeń ani zgód. Poinformuj strony o ponownym uzyskaniu dostępu.
+- **Transakcje.** Zachowaj blokadę PESSIMISTIC_WRITE na trips przy każdej decyzji, zmianie warunków i rezygnacji. Dostępne miejsca = target_people − organizator − aktywne zaakceptowane zgłoszenia, także oczekujące na potwierdzenia. Ponowienie potwierdzenia nie zajmuje miejsca. Wycofanie przez uczestnika lub odwołanie udziału przez organizatora zwalnia je raz (dodaj terminalny CANCELLED do CHECK). Blokada między stronami kończy ich aktywne zgłoszenie, odblokowanie nie przywraca relacji. Wysyłkę i blokadę serializuj na wspólnej parze użytkowników, wyprawy blokuj w stałej kolejności.
+- **Cykl życia.** CLOSED zamyka nabór. Osobny wynik wyprawy PLANNED/COMPLETED/CANCELLED odróżnia zakończenie po terminie od odwołania. Starym rekordom nie przypisuj odbytego wyjazdu. Anulowanie zamyka nabór i kończy aktywne zgłoszenia w jednej transakcji. Zakończenie zamyka nabór, utrwala listę potwierdzonych par dla 8F i kończy kontakt. Istotna edycja po first_accepted_at wymaga nowej wersji i ponownej akceptacji wszystkich zainteresowanych, poprzednie migawki pozostają czytelne. Odrzuć zapis wobec nieaktualnej wersji (409).
+- **API i UI.** Organizator POST /trips/{id}/agreements oraz /complete lub /cancel pod zasobem wyprawy. Strony PUT /applications/{id}/confirmations/{version}/me, właściciel PUT/DELETE /applications/{id}/contact-consents/{channel}. Istniejący GET kontaktów filtruje kanały każdorazowo według aktywnych kont, braku blokady, udziału, bieżącej wersji i zgody ujawniającego. Rezygnacja, zmiana wersji i blokada wygaszają zgody. Panel PL/EN pokazuje rezerwację, wersję, obie decyzje, rezygnację i możliwość cofnięcia zgody. Objaśnia, że odbiorca mógł już zapisać dane.
+- **Odbiór po 8C.** Test współbieżnych akceptacji ostatniego miejsca, rezygnacji z ponowieniem, zmiany wersji w trakcie potwierdzania i usunięcia konta. E2E stare ACCEPTED → dwa potwierdzenia → jednostronna zgoda → cofnięcie → brak odczytu. Sprawdź anulowanie całej grupy. Koszt obejmuje utrzymanie migawek do usunięcia wyprawy.
+- **Polecenie:** „Wykonaj lokalnie 8D według PLAN.md. Zachowaj rezerwacje V10, rozdziel decyzje i zgody, przetestuj wyścigi na PostgreSQL i migrację dostępu do kontaktów.”
+
+#### Etap 8E — Centrum bezpieczeństwa (12–18 h)
+
+- **Model i dostęp.** Prywatne checklist_items z FK użytkownika i wyprawy oraz UNIQUE(user_id,trip_id,item). Nowe listy zaczynają się puste. GET/PUT /me/trips/{id}/checklist tylko dla właściciela będącego stroną przygotowań. Usunięcie konta lub wyprawy usuwa listę. Postęp jest dobrowolny i niewidoczny dla innych.
+- **UI po 8D.** Widok PL/EN prowadzi do ustaleń, lokalnych źródeł pomocy, zgłoszenia, blokady i rezygnacji. Obejmuje rozmowę wideo poza platformą lub spotkanie publiczne, nocleg, dzielenie pokoju i samodzielny powrót. Użytkownik na żądanie przygotowuje podgląd planu dla zaufanej osoby i sam go przekazuje. Generuj z listy dozwolonych pól (kraj, termin), bez dokładnych lokalizacji, wolnego tekstu, cudzych danych i publicznego linku.
+- **Odbiór.** API odmawia partnerowi odczytu cudzej checklisty. E2E sprawdza prywatny postęp, podgląd, anulowanie udostępnienia i wycofanie udziału. Koszt redakcyjny stanowi aktualizacja odnośników do lokalnej pomocy.
+- **Polecenie:** „Wykonaj lokalnie 8E według PLAN.md. Dodaj prywatną checklistę i świadome przekazanie minimalnego planu, sprawdź zakres eksportu w PL/EN.”
+
+#### Etap 8F — Opinie i reputacja (24–36 h)
+
+- **Uprawnienie pary.** Po COMPLETED osoby z potwierdzonym udziałem w tej samej wersji końcowych ustaleń (w tym organizator) deklarują osobno, z kim faktycznie podróżowały. Tylko dwie wzajemne deklaracje tej samej pary otwierają jej okno opinii na 14 dni od drugiej deklaracji. W grupie każda para działa niezależnie. Jednostronna deklaracja pozostaje prywatna. Anulowany wyjazd lub udział nie otwiera okna.
+- **Dane i API.** travel_declarations i reviews mają FK wyprawy i obu osób oraz unikalność (trip_id,author_id,subject_id), zakaz samooceny. Indeks terminu publikacji obsługuje ujawnianie. PUT /trips/{id}/travel-declarations/{peer} i POST /trips/{id}/reviews/{peer} walidują parę i termin po stronie serwera. Obie wzajemne opinie ujawnij atomowo po drugiej, pojedynczą po upływie okna. Publiczna treść dotyczy konkretnego doświadczenia i nie stanowi gwarancji bezpieczeństwa współpodróżnika. Wcześniej ukryj także metadane zdradzające decyzję partnera. Starsze podróże bez deklaracji nie otrzymują opinii.
+- **UI i moderacja.** Historia PL/EN obejmuje wyłącznie obustronnie zadeklarowane odbyte wyjazdy. Opinie opisują konkretne doświadczenia. Osobny prywatny feedback czyta wyłącznie uprawniony moderator sprawy przez audytowany endpoint administracyjny. Rozszerz /reports i dowody z 8C o opinię, ukrycie i odwołanie. W profilu publikuj tylko jawne, dopuszczone treści. Usunięcie osoby lub wyprawy usuwa powiązane deklaracje, historię, opinie i feedback z wyjątkiem minimalnych dowodów sprawy.
+- **Odbiór po 8D–8E.** Test z kontrolowanym zegarem obejmuje granicę 14 dni, równoczesne opinie, duplikat, blokadę kontaktu i anulowany udział. E2E grupy trzech osób sprawdza jednostronną deklarację, niezależne ujawnienie opinii pary i brak prywatnego feedbacku w SSR. Główny koszt operacyjny to moderacja.
+- **Polecenie:** „Wykonaj lokalnie 8F według PLAN.md. Dodaj deklaracje parami, opinie double-blind i moderatora sprawy, sprawdź zegar i prywatność w grupie.”
+
+#### Etap 8G — Dopasowanie i porównywanie (12–20 h)
+
+- **Odczyt po 8B i 8F.** Bez nowych tabel, indeksów i utrwalania porównań. GET /trips/{id}/comparison porównuje preferencje zalogowanej osoby z widoczną wyprawą lub publicznymi polami organizatora. GET /trips/{id}/applications/comparison przyjmuje ograniczoną listę zgłoszeń. Tylko organizator, wyłącznie kandydaci na jego wyprawę. Sprawdź każde ID oraz blokady i statusy kont przed projekcją.
+- **UI.** Tabela PL/EN pokazuje tempo, budżet, nocleg, styl planowania, czas razem i zainteresowania jako zgodność, różnicę lub brak danych. Wyświetl wartości źródłowe i jednostki. W panelu organizatora dodaj doświadczenie, konkretne potwierdzenia i jawną historię. Bez loginów, kontaktów, prywatnych deklaracji, wiadomości i feedbacku. Użytkownik sam wybiera współpodróżnika.
+- **Odbiór.** Test API odrzuca całą listę z obcym zgłoszeniem i omijanie blokady. E2E porównuje dwie osoby z różnymi i brakującymi danymi oraz sprawdza widok własnych preferencji. Koszt to zapytania odczytu, bez dostawcy rekomendacji.
+- **Polecenie:** „Wykonaj lokalnie 8G według PLAN.md. Dodaj oba porównania wartości i przetestuj izolację kandydatów między wyprawami.”
+
+#### Etap 8H — Planowanie podróży i koszty (20–32 h)
+
+- **Model po 8D i 8E.** Dodaj trip_cost_items z FK/indeksem wyprawy, kategorią transport/nocleg/wyżywienie/atrakcje/inne, kwotą PLN i sposobem podziału. Kwoty nieujemne dziesiętne. Koszt wspólny dziel przez jawnie podaną liczbę planowanych osób łącznie z organizatorem, indywidualny oznacza kwotę na osobę. Sumuj przed zaokrągleniem do groszy. Utrwal dzielnik, pozycje i sumę w wersji ustaleń, aby zmiana składu nie przepisała zaakceptowanej ceny.
+- **Budżet i migracja.** Stare wyprawy zachowują budget_min/max i pusty kosztorys. Filtry nadal używają przedziału PLN na osobę. Kosztorys jest opcjonalny. Przy jego publikacji pokaż sumę i wymagaj zgodności z podanymi granicami. Gdy brak obu granic, przyjmij sumę za obie po zatwierdzeniu przez autora. Zmiana granic po akceptacji przechodzi przez 8D.
+- **API i UI.** Publiczne szczegóły mogą pokazać zatwierdzony kosztorys. GET /trips/{id}/preparations tylko dla organizatora i potwierdzonych uczestników obejmuje prywatny plan, termin, transport, nocleg, podział kosztów, wersję ustaleń i link do własnej checklisty. Organizator edytuje przez PUT z oczekiwaną wersją, uczestnik proponuje zmiany w rozmowie i potwierdza wersję. Prywatne szczegóły przechowuj przy wersji poza publicznym DTO. Istotna zmiana wymaga ponownego potwierdzenia z podglądem propozycji dla zainteresowanych. Rezygnacja odbiera dostęp. Kasowanie kosztorysu i przygotowań wraz z wyprawą. Oba widoki PL/EN rozróżniają szacunek grupowy i na osobę.
+- **Odbiór.** Testy obejmują grosze przy podziale przez trzy, zerowy dzielnik, kwotę poza przedziałem, stary filtr i konflikt wersji. E2E publikuje kosztorys, potwierdza zmianę i sprawdza utratę prywatnego widoku po rezygnacji. Brak opłat transakcyjnych w zakresie estymacji.
+- **Polecenie:** „Wykonaj lokalnie 8H według PLAN.md. Powiąż kosztorys z budżetem i wersją ustaleń oraz sprawdź filtrowanie i uprawnienia do przygotowań.”
+
+### Etap 9 — wdrożenie i zamknięta beta
+
+**Czas: 16–24 h. Cel:** uruchomienie, backup i odtworzenie.
 
 Zadania: aktualne ceny/dostępność, zatwierdzony hosting, obrazy i Compose produkcyjny, Caddy/domena/SSL, CI/CD z ręczną zgodą, prawdziwy dostawca poczty, produkcyjne OIDC i Turnstile, backup/restore, monitoring, beta 5–10 osób.
 
 DoD: restart VPS nie niszczy aplikacji; restore do czystej bazy sprawdzony; rollback obrazu sprawdzony; krytyczne E2E na HTTPS; brak wycieku kontaktów; produkcyjne sekrety i konfiguracja różne od dev.
+
+Warunkiem zaproszenia uczestników bety jest odbiór 8A–8H w PL/EN, próba blokady i cofnięcia zgody podczas aktywnej sesji, kontrola dostępu do rozmów, dowodów i przygotowań, próba moderacji opinii oraz test usunięcia danych i ponowienia usunięć po restore. Zatwierdź dokumenty prywatności, okresy retencji, procedurę zgłoszeń i odpowiedzialność moderatora.
 
 Ryzyko: dostępność VPS, koszty, dostarczalność poczty, błędy konfiguracji środowiska.
 
 Prompt — użyć dopiero po decyzji o wdrożeniu:
 
 ```text
-Przygotuj etap 8 zgodnie z PLAN.md: produkcyjne obrazy, Compose,
+Przygotuj etap 9 zgodnie z PLAN.md: produkcyjne obrazy, Compose,
 Caddy, CI/CD, szyfrowany backup poza VPS, monitoring i rollback.
 Sprawdź aktualne koszty i konfigurację usług przed ich wyborem.
 Oddziel dev/test od prod: seedy, cookies, OAuth, antybot i poczta.
@@ -665,15 +734,15 @@ Nie twórz teraz pustych tabel i usług pod przyszłe funkcje. Zachowaj identyfi
 
 | Funkcja | Priorytet | Warunek |
 | --- | --- | --- |
-| Weryfikacja e-maila | P1 | Istnieją pola/tokeny; szczególnie potrzebna przy spamie |
 | Zapisane filtry i powiadomienia | P1 | Użytkownicy wracają; limity wysyłki i rezygnacja |
-| Opinie po podróży | P2 | Tylko realni uczestnicy po terminie; odwołania |
 | Plan dnia | P2 | Oddzielne dni/punkty, zachowanie opisu |
 | Czat grupowy | P2 | Dostęp przez uczestnictwo, retencja i moderacja |
 | Weryfikacja telefonu | P3 | Wykazany problem uzasadniający koszt SMS |
 | Jawne łączenie loginów/Facebook | P3 | Ponowne uwierzytelnienie i bezpieczny workflow |
 
-**[KOSZT]** SMS wyceń dla kraju i wolumenu przed implementacją. Darmowa alternatywa: e-mail. **[CZAS]** Czat znacząco zwiększa zakres; na początku zaakceptowane kontakty pozwalają porozumiewać się poza aplikacją.
+Do walidacji pozostają zdjęcia profilowe, personalizowane rekomendacje i ranking kandydatów, społeczność i wymiana doświadczeń, real-time, załączniki oraz integracja wideo. Przed każdą płatną integracją sprawdź zapotrzebowanie, prywatność i pełny koszt przy spodziewanym wolumenie.
+
+Poza zakresem są publiczny safety score, profilowanie psychologiczne, automatyczna ocena bezpieczeństwa osoby, kopie dokumentów tożsamości, GPS, własny system alarmowy i infrastruktura wideo, background checki, płatności i przechowywanie środków.
 
 ### Faza 3 — monetyzacja
 
@@ -683,8 +752,8 @@ Nie twórz teraz pustych tabel i usług pod przyszłe funkcje. Zachowaj identyfi
 | Wyróżnione ogłoszenia | P2 | Wystarczająco dużo treści, jawne oznaczenie |
 | Reklamy kontekstowe | P2 | Ruch uzasadnia wpływ na UX; zgody i wymagania dostawcy |
 | Konta małych organizatorów | P3 | Walidacja osobnego segmentu i obowiązków prawnych |
-| Podział kosztów | P3 | Najpierw ewidencja, bez przechowywania środków |
-| Weryfikacja dokumentów | P3 | Udowodniona potrzeba, koszt i ryzyko danych |
+| Ewidencja faktycznych wydatków i należności | P3 | Najpierw ewidencja, bez przechowywania środków |
+| Opcjonalna weryfikacja ID u zewnętrznego dostawcy | P3 | Udowodniona potrzeba, koszt i ryzyko danych |
 | Aplikacja natywna | P3 | Potwierdzona retencja mobilna; wykorzystanie REST |
 
 **[CZAS/KOSZT]** Płatności to prowizje, zwroty, księgowość i dodatkowe obowiązki. Bezpłatna walidacja: zbieranie zainteresowania ofertą bez pobierania pieniędzy.
@@ -693,17 +762,17 @@ Nie twórz teraz pustych tabel i usług pod przyszłe funkcje. Zachowaj identyfi
 
 | Temat | Domyślna propozycja / działanie |
 | --- | --- |
-| Dostępny czas | 18–20 h/tydzień dla ok. 6 tygodni; inaczej przesunąć termin |
-| Hosting | Nie kupować teraz; sprawdzić limit 40 zł i dostępność przed etapem 8 |
+| Dostępny czas | 18–20 h/tydzień zgodnie z §5.1; inaczej przesunąć termin |
+| Hosting | Nie kupować teraz; sprawdzić limit 40 zł i dostępność przed etapem 9 |
 | Wiek | 18+, deklaratywnie |
 | Komercyjni organizatorzy | Poza MVP |
-| Kontakty | Wyłącznie organizator ↔ zaakceptowany |
+| Kontakty | Od 8D wzajemne potwierdzenie i zgoda właściciela na kanał |
 | Publiczne uczestnictwo | Jawna informacja przed zgłoszeniem |
 | Budżet | Koszt całego wyjazdu na osobę, PLN |
 | Elastyczne daty | Okno + długość, przybliżone dopasowanie |
-| Brak weryfikacji e-maila | Świadomy kompromis, limity i brak automatycznego łączenia kont |
+| Brak weryfikacji e-maila | Do 8A dopuszczalny, od 8A blokuje publikację i zgłoszenie |
 | Moderacja | Autor, codzienny przegląd i procedura pilna |
-| Zmiany po akceptacji | Zablokowane kraje, daty, budżet |
+| Zmiany po akceptacji | Od 8D przez nową wersję ustaleń |
 | Pusta platforma | Przed publicznym startem pozyskać 10–20 prawdziwych ogłoszeń |
 | Miary użyteczności | Publikacje, zgłoszenia, akceptacje, czas do pierwszego zgłoszenia; agregaty SQL |
 | Zarabianie | Główne ryzyko to pozyskanie treści i użytkowników, nie stack |

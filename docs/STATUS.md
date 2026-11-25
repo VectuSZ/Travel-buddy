@@ -1,11 +1,27 @@
 # Status projektu
 
-## Przekazanie do nowej sesji Codex — 2026-11-19
+## Stan na 25 listopada 2026
+
+Etapy 1–7B są zaimplementowane lokalnie. Autor odebrał 1 i 2A. Trwa odbiór 2B, następnie 3 → 4 → 5 → 6 → 7A → 7B. Dowody i otwarte próby pozostają w [historii odbiorów](ACCEPTANCE.md).
+
+| Etap | Zakres | Status |
+| --- | --- | --- |
+| 8A | Wiarygodność konta | Planowany po pełnym odbiorze MVP |
+| 8B | Profile, preferencje i filtry | Planowany |
+| 8C | Rozmowy i blokowanie | Planowany |
+| 8D | Potwierdzenie wspólnej podróży | Planowany |
+| 8E | Centrum bezpieczeństwa | Planowany |
+| 8F | Opinie i reputacja | Planowany |
+| 8G | Porównywanie preferencji i kandydatów | Planowany |
+| 8H | Przygotowania i kosztorys | Planowany |
+| 9 | Wdrożenie i zamknięta beta | Planowany po odbiorze etapu 8 i decyzji autora |
+
+## Archiwalne przekazanie do nowej sesji Codex — 2026-11-19
 
 **Następne zadanie to pełny odbiór lokalnego MVP, począwszy od etapu 1.**
 Implementacja etapów 1–7B jest zakończona. Odbieraj kolejno 1 → 2A → 2B → 3 → 4 → 5 → 6 → 7A → 7B.
 Dla każdego etapu zapisz środowisko, polecenia, wynik i ewentualny brak dowodu.
-Etap 8 świadomie odłożono do decyzji autora po odbiorze. Obowiązuje AGENTS.md.
+Etap 9 świadomie odłożono do decyzji autora po odbiorze. Obowiązuje AGENTS.md.
 
 **Git przy przekazaniu.** Lokalna gałąź `main`, HEAD `b8095f7` („Stage 7B of working application”),
 zgodna z lokalną referencją `origin/main` w chwili odczytu. Na wejściu drzewo i indeks były czyste.
@@ -36,7 +52,7 @@ sprawdzono dokumentację, kod i stan Git; testów aplikacji ponownie nie urucham
 - **Usuwanie.** Obecność w kolejce i blokada rekordu zastępują osobne stany zadania z planu. Worker ponawia transakcję po błędzie, gdy aplikacja działa. Sprzątanie sesji i tokenów odbywa się co godzinę. Granica końca wyprawy używa Europe/Warsaw. Retencja zamkniętych wypraw oraz zakończonej moderacji wynosi 12 miesięcy według zasad 7A w [DECISIONS.md](DECISIONS.md). Test błędu symulował rollback; awaryjne zabicie procesu i odtworzenie backupu nie były częścią tej próby.
 - **Luki produktu i eksploatacji.** Odnotowano brak linków do profili przy uczestnikach i zgłoszeniach. Uczestnik może się wycofać, organizator nie usuwa zaakceptowanego uczestnika. Brak trwałego ponawiania SMTP. Historycznie pierwsze żądanie po restarcie PostgreSQL raz zwróciło 500, kolejne zadziałało. Sprawdzić ponownie w etapie 1.
 - **Ręczny odbiór.** Zacząć od uruchomienia w czystym checkoucie i sprawdzenia trwałości danych. Następnie sprawdzić tę samą sesję po restarcie backendu, wiadomości resetu i decyzji w Mailpit oraz główną ścieżkę A/B/C na fizycznym telefonie. Emulacja mobilna 7B obejmowała dokumenty i nawigację. Google (również świeże auth_time przy usuwaniu) i Cloudflare Siteverify wymagają osobnego odbioru z uprawnionym kontem i kluczami.
-- **Przed publikacją.** Dokumenty są robocze, obecna wersja regulaminu to local-draft-2. Autor uzupełnia dane administratora, kontakt i dostawców oraz weryfikuje procedury i treść prawnie. Ustawienia pokazują niezbędne cookies; opcjonalne integracje, reklamy i analityka nie są aktywne. Produkcyjna retencja logów, alarm zaległych usunięć, backupy i ponowienie usunięć po restore należą do odłożonego etapu 8.
+- **Przed publikacją.** Dokumenty są robocze, obecna wersja regulaminu to local-draft-2. Autor uzupełnia dane administratora, kontakt i dostawców oraz weryfikuje procedury i treść prawnie. Ustawienia pokazują niezbędne cookies; opcjonalne integracje, reklamy i analityka nie są aktywne. Produkcyjna retencja logów, alarm zaległych usunięć, backupy i ponowienie usunięć po restore należą do odłożonego etapu 9.
 
 ### Uruchomienie i weryfikacja
 
@@ -551,7 +567,7 @@ Ograniczenia: nie wykonano rzeczywistego Google — test OIDC jest lokalny;
 Google bez świeżego auth_time zostanie bezpiecznie odrzucone. Kolejka
 wznawia się z bazy; test symuluje błąd przed commit, nie zabija procesu OS.
 Retencja działa podczas pracy aplikacji. Brak produkcyjnego alarmu 7 dni,
-retencji konsoli/IDE i obsługi backupów/restore — konkretne punkty etapu 8
+retencji konsoli/IDE i obsługi backupów/restore — konkretne punkty etapu 9
 w DECISIONS. Niepowiązane wzmianki w cudzych tekstach wymagają ręcznej oceny.
 
 Z etapu 6 pozostaje rzeczywisty test Cloudflare, ręczny odbiór mobilny i brak

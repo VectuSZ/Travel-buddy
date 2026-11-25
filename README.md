@@ -785,7 +785,7 @@ Opcjonalne `-Dprivacy.cleanup-interval=5s` przyspiesza worker tylko na czas
 odbioru w izolowanym schemacie. Nie używaj tej konfiguracji na danych autora.
 Zakres minimalizacji raportów, okresy i zależności od działania aplikacji
 opisano w docs/DECISIONS.md. Logi terminala i backupy nie mają automatycznej
-retencji w tym lokalnym środowisku; konkretne wymagania zapisano do etapu 8.
+retencji w tym lokalnym środowisku; konkretne wymagania zapisano do etapu 9.
 
 Do powtórzenia pełnej próby A/B/B2/C użyj schematu `stage7a_trial`
 zamiast `stage7a_e2e` w obu parametrach backendu. Worker co 5 s ułatwia

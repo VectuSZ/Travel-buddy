@@ -22,3 +22,6 @@
 **/playwright-report/
 **/test-results/
 *.log
+
+# Pobrane poświadczenia klienta Google OAuth
+client_secret_*.json
