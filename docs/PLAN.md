@@ -333,7 +333,7 @@ Kontrakt:
 - Brak tokenów auth w localStorage. Brak CORS `*`; przeglądarka korzysta z jednego origin.
 - OIDC przez utrzymywaną bibliotekę: podpis, issuer, audience, exp, state, nonce; PKCE zgodnie z obsługą integracji.
 - Tożsamość Google po `issuer + sub`, nie po e-mailu.
-- Bez automatycznego łączenia istniejącego konta lokalnego i Google po zgodnym e-mailu. Pokaż drogę logowania lokalnego/odzyskania hasła. Jawne łączenie później.
+- Bez automatycznego łączenia istniejącego konta lokalnego i Google po zgodnym e-mailu. Przy konflikcie zaproponuj jawne powiązanie po aktualnym haśle Travel Buddy lub odzyskanie hasła. W ustawieniach konta lokalnego użytkownik może rozpocząć ten sam proces związany z bieżącą sesją. Potwierdzenie zachowuje UUID, dane i hasło.
 - `email_verified_at` istnieje, ale nie blokuje lokalnych kont w MVP. Brak weryfikacji nie daje prawa do automatycznego łączenia kont.
 - Hasła i tokeny nigdy nie trafiają do logów.
 
@@ -738,7 +738,7 @@ Nie twórz teraz pustych tabel i usług pod przyszłe funkcje. Zachowaj identyfi
 | Plan dnia | P2 | Oddzielne dni/punkty, zachowanie opisu |
 | Czat grupowy | P2 | Dostęp przez uczestnictwo, retencja i moderacja |
 | Weryfikacja telefonu | P3 | Wykazany problem uzasadniający koszt SMS |
-| Jawne łączenie loginów/Facebook | P3 | Ponowne uwierzytelnienie i bezpieczny workflow |
+| Kolejne metody logowania / Facebook | P3 | Ponowne uwierzytelnienie i bezpieczny workflow |
 
 Do walidacji pozostają zdjęcia profilowe, personalizowane rekomendacje i ranking kandydatów, społeczność i wymiana doświadczeń, real-time, załączniki oraz integracja wideo. Przed każdą płatną integracją sprawdź zapotrzebowanie, prywatność i pełny koszt przy spodziewanym wolumenie.
 

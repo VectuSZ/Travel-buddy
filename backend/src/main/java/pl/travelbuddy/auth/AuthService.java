@@ -17,7 +17,7 @@ public class AuthService {
  @Transactional public String register(AuthDtos.Register r) {
   confirmation(r.password(),r.passwordConfirmation());
   User u=new User(); u.id=UUID.randomUUID(); u.email=email(r.email()); u.passwordHash=passwords.hash(r.password());
-  u.role="USER"; u.status="ACTIVE"; u.uiLocale=r.locale(); u.termsVersion="local-draft-2";
+  u.role="USER"; u.status="ACTIVE"; u.uiLocale=r.locale(); u.termsVersion=AuthDtos.TERMS_VERSION;
   u.createdAt=Instant.now(); u.updatedAt=u.createdAt; u.termsAcceptedAt=u.createdAt;
   if (User.count("lower(email) = ?1",u.email)>0) throw new AuthProblem(409,"EMAIL_UNAVAILABLE");
   try { u.persistAndFlush(); }

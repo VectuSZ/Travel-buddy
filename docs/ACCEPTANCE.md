@@ -217,7 +217,7 @@ Do prób użyj świeżego adresu, np. odbior-2411-a@example.test, hasła począt
 
 ## Etap 2B — Google OIDC
 
-**Ręczny odbiór przez autora: oczekujący.** Etap 2A odebrany. Podstawa analizy: PLAN, etap 2; DECISIONS, etap 2B; otwarty test rzeczywistego Google w STATUS. Na wejściu HEAD cb7b265 i lokalne zmiany odbioru 2A w dokumentacji, formularzu, tłumaczeniach i teście auth. W tym odbiorze zmieniono tylko dokumentację.
+**Odebrany przez autora 26 listopada 2026** po poprawkach Google OIDC, łączenia metod logowania i resetu hasła. Poniżej przebieg wcześniejszych prób. Etap 2A odebrany. Podstawa analizy: PLAN, etap 2; DECISIONS, etap 2B; otwarty test rzeczywistego Google w STATUS. Na wejściu HEAD cb7b265 i lokalne zmiany odbioru 2A w dokumentacji, formularzu, tłumaczeniach i teście auth. W tym odbiorze zmieniono tylko dokumentację.
 
 ### Wymagania i ocena
 
@@ -267,7 +267,7 @@ Użyj osobnego profilu przeglądarki dla portu 3000. Przygotuj uprawnione konto 
 | B ma konto lokalne założone hasłem, bez powiązania Google | Wyloguj B. Na ekranie login wybierz Google B; sprawdź też próbę przez register ze zgodą. Następnie zaloguj się dotychczasowym hasłem. | Komunikat o zajętym adresie, brak sesji Google w aplikacji; lokalne hasło nadal działa. |
 | Kopia 3106, Google wyłączone | Otwórz /login i /register oraz warianty /en. | Widoczne formularze lokalne, przycisk Google ukryty. |
 
-**Uwagi autora i ostateczna decyzja 2B:** oczekujące.
+**Ostateczna decyzja autora 2B:** odebrany po poprawkach.
 
 ### Ponowny odbiór na nowym Macu — 25 listopada 2026
 
@@ -295,3 +295,146 @@ Na osobnej bazie travel_buddy_acceptance_2b uruchomiono:
 Wynik 29/29, w tym 10 Google, 18 kont i sesji, 1 limitera. Zero błędów i pominięć. npm ci, build Nuxta oraz node scripts/check-google-proxy.mjs przeszły. Playwright tests/auth.spec.ts wykonano w obu językach na tej samej osobnej bazie, z pomocniczym backendem na 28084 i zbudowanym Nuxtem na 3000. Pierwsza próba 0/2 przekroczyła pięciosekundowy czas asercji przejścia na konto (PL) i komunikatu resetu (EN). Powtórzenie po zakończeniu startu usług, bez zmiany testu, dało 2/2 w 19 sekund. Przyczyna pierwszych opóźnień nieustalona. Próba z rzeczywistymi poświadczeniami Google pozostaje otwarta.
 
 Na docelowym Nuxt dev na localhost:3000 odczyt google/config zwrócił enabled=false. Skrypt node scripts/check-ssr.mjs potwierdził listy i szczegóły w PL i EN (4/4).
+
+**26 listopada 2026.** Po lokalnym uzupełnieniu danych klienta i restarcie Quarkusa endpoint konfiguracji przez Nuxt potwierdził aktywne OIDC. W Chromium sprawdzono przycisk Google na login/register w PL i EN oraz blokadę rejestracji przed zgodą. Start przez frontend wygenerował przekierowanie do accounts.google.com z redirect_uri równym http://localhost:3000/api/v1/auth/google/callback. Próbę zatrzymano przed ekranem dostawcy. Rzeczywisty callback, sesja i decyzja autora pozostają do ręcznego odbioru.
+
+### Poprawki po ręcznym odbiorze 2B — 26 listopada 2026
+
+Obie uwagi autora mają wysoki priorytet. Poniższa checklista zastępuje wcześniejsze próby wymagające wyboru osobnej rejestracji Google i zgody przed przekierowaniem.
+
+1. **Wspólne wejście i zgoda po callbacku.** Na obu formularzach przycisk Google rozpoczyna ten sam proces. Nowa, zweryfikowana tożsamość z wolnym adresem dostaje osobny ekran zgody PL/EN z linkami do dokumentów. Rezygnacja zużywa próbę i prowadzi do logowania. Akceptacja zapisuje zgodę i tworzy konto, tożsamość i sesję. Powracająca aktywna tożsamość przechodzi do konta. Zajęty adres daje komunikat z drogą do logowania hasłem. Konto zablokowane nie otrzymuje sesji.
+2. **Wybór konta po wylogowaniu.** Zwykła autoryzacja wysyła `prompt=select_account` bez login_hint. W ścieżce usuwania konta aplikacja nadal wymaga świeżego uwierzytelnienia tej samej tożsamości i zgodności sesji.
+
+**Ręczny odbiór prawdziwego Google — oczekuje na autora.** Użyj tego samego profilu przeglądarki i localhost:3000 przez całą próbę. Przygotuj uprawnione konta Google A i B, w tym jedno z wolnym adresem. Dla konfliktu użyj osobnego adresu Google, który rejestrujesz lokalnie hasłem.
+
+| Próba | Kroki i oczekiwany rezultat |
+|---|---|
+| Rezygnacja | Na /login kliknij Google i wybierz nową tożsamość. Sprawdź oba linki prawne i nieaktywny przycisk przed zgodą. Zrezygnuj. Otwiera się logowanie, /account pozostaje niedostępne. Kolejna próba tą samą tożsamością ponownie wyświetla regulamin. |
+| Akceptacja | Wróć przez /en/register bez wypełniania pól lokalnych. Wybierz tę samą tożsamość. Sprawdź język i oba linki, zaznacz zgodę i potwierdź. Oczekuj /en/account z właściwym adresem bez drugiego przejścia przez Google. |
+| A → B → A | Wyloguj A. Na /login kliknij Google, sprawdź selektor i zaloguj B. Jeśli to nowe konto, zaakceptuj regulamin. Sprawdź adres B i wyloguj. Wróć przez /register do A. Oczekuj wyboru konta oraz bezpośredniego przejścia na konto A. |
+| Konflikt, blokada i odmowa dostawcy | Dla lokalnego adresu z hasłem sprawdź konflikt i link do logowania, a następnie dotychczasowe hasło. Dla zablokowanej testowej tożsamości sprawdź komunikat i brak sesji. Jeśli Google oferuje anulowanie, odmów i wróć linkiem do logowania. Zamknięcie karty nie wywołuje callbacku. |
+
+**Testy automatyczne z 26 listopada.** Użyto osobnej bazy travel_buddy_acceptance_2b. Zestaw GoogleOidcTest, AuthResourceTest i AccountDeletionTest przeszedł 40/40 (11 + 18 + 11). Po rozdzieleniu parametrów żądania autoryzacji ponownie wykonano GoogleOidcTest, wynik 11/11. Pokrycie obejmuje pojedyncze zużycie decyzji, CSRF, ponowny callback istniejącej tożsamości, konflikt i wyścig adresów, blokadę oraz zabezpieczenia ponownego uwierzytelnienia. Pierwszy przebieg sześciu scenariuszy z nowym klientem testowym odrzucił podwójne cookie CSRF. Poprawiono składanie żądania w teście.
+
+**Przeglądarka z lokalnym dostawcą.** W jednym kontekście Chromium sprawdzono rezygnację A na polskim ekranie, ponowną próbę i akceptację A, logout z odmową dostępu do sesji, wybór i akceptację B przez /en/register oraz powrót do A przez /en/login bez kolejnej zgody. Oba formularze zgody miały linki do odpowiednich wersji dokumentów. W pierwszej próbie dopasowanie adresu uwzględniało wielką literę mimo normalizacji przez aplikację. Po korekcie asercji pełny przebieg ze świeżymi tożsamościami przeszedł. Typecheck, build i check-google-proxy przeszły. Regresja Playwright tests/auth.spec.ts z wyłączonym Google i Mailpit przeszła 2/2 po ponowieniu bez zmiany testów. Przy pierwszym wykonaniu obie pięciosekundowe asercje (PL przejście do konta, EN status resetu) przekroczyły limit czasu.
+
+**Konfiguracja prawdziwego Google.** Na docelowym localhost:3000 potwierdzono enabled=true oraz wygenerowanie żądania do Google z prompt=select_account, właściwym redirect URI i bez login_hint ani max_age w zwykłym logowaniu. Zatrzymano próbę przed interakcją z dostawcą. Widok rzeczywistego selektora Google, końcowy callback oraz decyzja odbiorowa należą do autora.
+
+## Pełny ponowny odbiór Google OIDC po uwadze 3
+
+**Decyzja autora po wykonaniu poprawek — odebrany.** Ta instrukcja zastępuje wcześniejsze checklisty 2B. Uwaga 3 dotyczyła konfliktu e-maila bez możliwości potwierdzenia istniejącego konta oraz braku tej operacji w ustawieniach.
+
+### Przygotowanie i kolejność
+
+Na prośbę autora 26 listopada przygotowano oddzielną bazę ręcznego odbioru `travel_buddy_manual_2b_20261126`. Stan początkowy po 13 migracjach to 0 tożsamości Google, 1 użytkownik demonstracyjny i 2 wyprawy. Backend działa na standardowym porcie 8080. Przy każdym restarcie podczas odbioru (również w 2B-15) użyj z katalogu projektu:
+
+```sh
+./scripts/backend.sh quarkus:dev -Ddebug=false -Dquarkus.datasource.jdbc.url=jdbc:postgresql://127.0.0.1:5433/travel_buddy_manual_2b_20261126
+```
+
+Po odbiorze zatrzymaj ten backend. Zwykłe `./scripts/backend.sh quarkus:dev` ponownie wybierze dotychczasową bazę `travel_buddy` z konfiguracji lokalnej.
+
+Używaj http://localhost:3000 w jednym profilu przeglądarki. Callback klienta Web application w istniejącym projekcie Google to dokładnie `http://localhost:3000/api/v1/auth/google/callback`. W trybie External/Testing dodaj używane adresy do Test users. Endpoint /api/v1/auth/google/config ma zwracać enabled=true. Używaj kont przeznaczonych do prób. Udane powiązanie pozostaje w bazie.
+
+- **A i B** — dwie tożsamości Google z wolnymi adresami, przeznaczone do utworzenia kont przez Google.
+- **C** — adres trzeciej tożsamości Google. Jeszcze przed użyciem Google zarejestruj ten adres przez /register z hasłem Travel Buddy. Zapisz w profilu rozpoznawalny pseudonim i kontakt. W /my-trips utwórz szkic z rozpoznawalnym tytułem. Zanotuj adres edycji szkicu. Jeśli masz testowe zgłoszenie, zapisz jego status i stan w /my-applications. Wyloguj C.
+- **D** — odrębne konto lokalne z hasłem i wolna tożsamość Google do połączenia w ustawieniach. Jej zweryfikowany e-mail może być inny niż podstawowy adres D. **M** — uprawniony moderator do próby blokady, w osobnym profilu przeglądarki. Test blokady wykonaj na końcu.
+- Przed 06 zarejestruj C lokalnie przez /register, używając adresu Google C i własnego hasła testowego. Uzupełnij profil i prywatny kontakt, utwórz szkic w /my-trips. Jeśli sprawdzasz historię, zgłoś się na dostępną wyprawę innego organizatora i zanotuj stan w /my-applications. W tej samej przeglądarce otwórz /api/v1/me i zanotuj userId oraz adres edycji szkicu, następnie wyloguj. Przed 11 utwórz D przez lokalną rejestrację i zaloguj się hasłem D.
+- Dla każdego ID zanotuj PL/EN, wynik i zaobserwowaną różnicę. Do raportu nie kopiuj haseł, tokenów, wartości cookies ani pełnych URL callbacku. Jeśli ponawiasz odbiór wcześniej połączonego konta, dla prób pierwszego połączenia przygotuj nowe konto testowe.
+
+| ID | Warunek i konta | Kroki | Oczekiwany rezultat | Jak sprawdzić |
+|---|---|---|---|---|
+| 2B-01 | Gość, nowe A | Na /login wybierz Google, następnie A. Otwórz regulamin i politykę prywatności. Bez zaznaczania zgody wybierz powrót. | Dokumenty PL, potwierdzenie nieaktywne, powrót do logowania bez utworzenia konta. | /account wymaga logowania. Ponowny wybór A w 02 ponownie pokazuje zgodę. |
+| 2B-02 | Gość, A po 01 | Ponów przez /login, zaznacz zgodę, zaakceptuj jeden raz. | Konto A i sesja powstają po zgodzie, bez drugiego logowania Google. | Na /account odczytaj adres A, w metodach Google połączone i hasło niedostępne. |
+| 2B-03 | Zalogowane A | Odśwież konto, otwórz je w drugiej karcie. Wyloguj w pierwszej i odśwież drugą. | Odświeżenie zachowuje aktywną sesję, wylogowanie kończy dostęp w obu kartach. | Druga karta przekierowuje na logowanie. |
+| 2B-04 | Ten sam profil po 03, nowe B | Na /en/register pozostaw puste pola i odznaczoną zgodę lokalną. Kliknij Continue with Google. W selektorze wybierz B, sprawdź oba linki EN, zaznacz zgodę i potwierdź. | Wybór innego konta i pierwsza rejestracja B z ekranu rejestracji. | /en/account pokazuje adres B i angielskie etykiety. |
+| 2B-05 | B zalogowane, A istnieje | Wyloguj B. Na /en/login wybierz Google A. | Selektor jest dostępny, A nie powtarza zgody. | Bezpośredni powrót na /en/account z adresem A. Wyloguj A. |
+| 2B-06 | Gość, lokalne C | Na /login wybierz Google C. Sprawdź propozycję „Połącz konto z Google”, wybrany adres, kliknij akcję, wpisz błędne hasło Travel Buddy. | Komunikat walidacji i możliwość ponowienia. | Pozostajesz na ekranie łączenia. Otwórz /account w innej karcie — brak sesji. |
+| 2B-07 | C po błędzie | Wybierz powrót do logowania. Wejdź hasłem C. | Próba anulowana, stara metoda nadal działa. | W metodach Google niepołączone. Wyloguj C. |
+| 2B-08 | Gość, C niepołączone | Zacznij ponownie przez /en/login. Na ekranie łączenia wybierz odzyskiwanie hasła. Podaj adres C, otwórz mail w localhost:8025 i ustaw nowe hasło. | Standardowy reset i konieczność nowego startu Google. | Powrót na /en/google-link bez nowego OIDC pokazuje komunikat nieważnej próby. |
+| 2B-09 | C z nowym hasłem | Wybierz Google C przez /en/login, kliknij Link account with Google, podaj aktualne hasło i potwierdź. | Powiązanie z istniejącym kontem, automatyczna sesja, brak rejestracji i zgody od nowa. | Na /en/account widzisz adres C i obie dostępne metody. Powrót na ekran łączenia nie daje kolejnego potwierdzenia. |
+| 2B-10 | C po 09 | Porównaj pseudonim, kontakt, listę /my-trips i zapisany adres edycji. Otwórz /my-applications, jeśli przygotowano zgłoszenie. Wyloguj, zaloguj hasłem, wyloguj i zaloguj Google C. | Obie metody prowadzą do istniejących danych i tych samych uprawnień. | Porównaj userId w /api/v1/me z wartością sprzed 06, szkic pod wcześniejszym adresem, pola profilu i status zgłoszenia po obu logowaniach. Wyloguj. |
+| 2B-11 | Lokalne D, A już używane | Zaloguj D hasłem. W /account wybierz połączenie, u Google wskaż A. | Odmowa zmiany właściciela A. | Wróć do /account. D nadal Google niepołączone, sesja D pozostaje aktywna. |
+| 2B-12 | D w ustawieniach, wolne Google D | Ponów z ustawień, wybierz wolną tożsamość D, sprawdź wyświetlony adres. Wpisz błędne, następnie poprawne hasło lokalne D. | Świeże potwierdzenie wymagane mimo aktywnej sesji. Obie metody dostępne po sukcesie. | Odśwież /account i sprawdź podstawowy adres D. Po wylogowaniu wybierz Google D i porównaj adres oraz profil. |
+| 2B-13 | Gość, A lub B | Na /login lub /en/login rozpocznij Google i wybierz odmowę, jeśli dostawca ją oferuje. | Po callbacku komunikat anulowania i droga do logowania w języku startu. | Sprawdź komunikat i brak dostępu do /account. Gdy Google nie oferuje odmowy, zapisz „niedostępne u dostawcy”. Zamknięcie karty nie wysyła callbacku. |
+| 2B-14 | C aktywne, M ma dostęp do moderacji C | Zaloguj C. Z drugiego profilu otwórz /profiles/{userId} dla C, zgłoś jego profil testowy. Jako M otwórz /moderation, wybierz to zgłoszenie, podaj uzasadnienie i zablokuj C. Odśwież kartę C i spróbuj obu metod ponownie. Po sprawdzeniu odblokuj C. | Blokada odbiera dostęp i uniemożliwia utworzenie nowej sesji. | Google pokazuje komunikat o nieaktywnym koncie. /account pozostaje niedostępne. Po odblokowaniu C znowu może się zalogować. |
+| 2B-15 | Ostatnia próba, konto lokalne C lub D | Ustaw GOOGLE_OIDC_ENABLED=false w lokalnym .env i zrestartuj backend. Sprawdź /login, /register i wersje /en. Zaloguj C hasłem i odwiedź ustawienia. Przywróć wcześniejszą wartość i zrestartuj backend. | Formularze hasła działają, przyciski startu Google ukryte, zapisane powiązania zachowane. | Porównaj /api/v1/auth/google/config przed i po przywróceniu; sprawdź obie metody C po ponownym włączeniu. |
+
+### Dodatkowe próby graniczne
+
+Wykonuj poniższe próby na **C przed 09 lub D przed 12**, zanim powiązanie zostanie zapisane.
+
+| ID | Warunek i konta | Kroki | Oczekiwany rezultat | Jak sprawdzić |
+|---|---|---|---|---|
+| 2B-16 | C niepołączone | Rozpocznij łączenie, odczekaj ponad 10 minut od rozpoczęcia autoryzacji, wyślij aktualne hasło. | Stan wygasł. | Brak nowej sesji; po logowaniu hasłem sprawdź Google niepołączone. |
+| 2B-17 | Lokalne D zalogowane | Rozpocznij z ustawień. Przed wysłaniem hasła wyloguj D w drugiej karcie; wróć do pierwszej i potwierdź. | Utrata sesji inicjującej blokuje zapis. | Zaloguj ponownie D hasłem i sprawdź metody. |
+| 2B-18 | C niepołączone, dwie karty | Rozpocznij próbę C, otwórz formularz hasła. W drugiej karcie rozpocznij kolejną próbę C. Wyślij formularz ze starej karty. | Stare potwierdzenie nie pasuje do nowej próby. | Brak nowej sesji. W razie potrzeby zacznij 09 od nowa. |
+| 2B-19 | Gość, kilka wcześniejszych prób | Jeśli pojawi się limit, zanotuj operację i czas, poczekaj 15 minut i rozpocznij od nowa. | Start ma limit 10 na IP w oknie 15 minut. Potwierdzenia hasłem mają osobne limity po 10 na IP i konto. | Po upływie okna ponów z poprawnymi danymi. Nie usuwaj danych w celu wyzerowania próby. |
+| 2B-20 | C przed 09, działający Mailpit | Po konflikcie przejdź do odzyskiwania hasła, podaj adres C, otwórz wiadomość w localhost:8025 i ustaw nowe hasło. Wróć na /google-link. Następnie rozpocznij od nowa przez Google C i potwierdź nowym hasłem (zalicza 09). | Stary proces nie umożliwia potwierdzenia. Nowa próba przyjmuje aktualne hasło. | Stara strona informuje o nieważnej próbie. Po nowym potwierdzeniu /account pokazuje obie metody, a nowe hasło działa w 10. |
+
+### Weryfikacja automatyczna uwagi 3
+
+- Na osobnej bazie travel_buddy_acceptance_2b i w izolowanym katalogu kompilacji uruchomiono zestaw GoogleOidcTest, AuthResourceTest i AccountDeletionTest. Wynik **43/43** (14 + 18 + 11), bez pominięć. Sprawdzono m.in. jedno powiązanie i obie metody logowania, zachowanie UUID, profilu, kontaktu, szkicu wyprawy i historii wycofanego zgłoszenia, błędne hasło, CSRF, anulowanie, wygaśnięcie, ponowienie potwierdzenia, blokadę i próbę zajęcia cudzej tożsamości. Wygaśnięcie odtworzono przez uruchomienie sprzątania ze znacznikiem czasu po końcu ważności próby.
+- Wcześniejsze przebiegi rozszerzonego testu wymagały korekty przygotowania i sprzątania danych: użyto encji ORM ze schematu testowego i jawnej kolejności usuwania własnych rekordów. Jedno uruchomienie ze współdzielonym katalogiem kompilacji przerwało się podczas wyszukiwania testów. Powyższy wynik pochodzi z ponownego pełnego przebiegu aktualnych źródeł.
+- Chromium z lokalnym dostawcą podpisującym tokeny: PL — konflikt, anulowanie, ponowienie, błędne i poprawne hasło oraz ponowne logowanie Google; EN — start z ustawień, błędne i poprawne hasło, obie metody widoczne, wylogowanie i ponowne logowanie Google. Obie ścieżki przeszły.
+- Przy wyłączonym OIDC Playwright tests/auth.spec.ts przeszedł **2/2** z Mailpit. Pierwszy przebieg dał 1/2 — polska próba przekroczyła limit 5 sekund przy komunikacie resetu. Powtórzono bez zmiany asercji. Typecheck, build, test proxy i git diff --check zakończyły się powodzeniem.
+- Środowisko autora przywrócone na localhost:3000 z enabled=true. Rzeczywiste połączenie kontrolowanych przez autora kont Google oraz jego decyzja odbiorowa pozostają do wykonania.
+
+### Uwaga 4 — walidacja nowego hasła podczas resetu (2A/2B)
+
+Formularze resetu i rejestracji korzystają z tej samej walidacji pól. Usunięto stałą podpowiedź PL/EN. Puste pole obsługuje natywne required, a komunikaty o długości (12–1024) i niezgodności haseł są przypisane do odpowiednich pól i znikają po poprawieniu wartości. Backend nadal sprawdza oba limity i zgodność haseł.
+
+**Weryfikacja.** Typecheck i build Nuxta przeszły. W izolacji na porcie 3106 i bazie travel_buddy_acceptance_2b wykonano `E2E_BASE_URL=http://localhost:3106 ./node_modules/.bin/playwright test tests/auth.spec.ts` z katalogu frontend. Wynik 2/2 w Chromium, PL i EN. W obu językach otwarto rzeczywisty link z Mailpit. Sprawdzono pusty formularz, 5 znaków, 1025 znaków, różne poprawnej długości hasła i poprawną zgodną parę. Atrybut maxlength ogranicza wpisywanie do 1024 znaków, więc wartość 1025 ustawiono programowo ze zdarzeniem input. Przy błędach nie wysłano żądania potwierdzenia resetu. Poprawna para pozwoliła zakończyć reset i zalogować się nowym hasłem.
+
+**Próba autora.** W scenariuszu 2B-20 otwórz link z Mailpit, wyślij pusty formularz, wpisz krótkie hasło, następnie dwa różne hasła długości co najmniej 12 znaków. Sprawdź fokus i komunikat przy odpowiednim polu. Wyrównaj wartości i wyślij ponownie. Oczekuj potwierdzenia resetu. Kontynuuj łączenie konta nowym hasłem zgodnie z 2B-09. Autor następnie potwierdził poprawne działanie i zakończył odbiór 2B.
+
+## Etap 3 — profil i prywatne kontakty, 26 listopada 2026
+
+**Oczekuje na ręczny odbiór autora.** Podstawą oceny są etap 3 PLAN, decyzje etapów 3 i 5, migracja V5, ProfileResource, ProfileService, ProfileDtos, ApplicationService.contacts, ProfileEditor.vue, strony account i profiles/[id] oraz oba słowniki i18n. Oceny opisują implementację. Wyniki uruchomień podano osobno.
+
+| Wymagania | Ocena | Zachowanie |
+| --- | --- | --- |
+| Nowe konto, zapis bez kontaktów, kompletność | zaimplementowane | /api/v1/me zwraca profile=null i puste kontakty. profileComplete oznacza zapisany profil, hasContact przynajmniej jeden kontakt, readyToParticipate wymaga obu. UI pokazuje najpierw brak profilu, następnie brak kontaktu lub gotowość. |
+| Nazwa, wiek, języki, style, walidacja wymaganych pól | zaimplementowane | Wymagane są wszystkie cztery. Nazwa po usunięciu skrajnych białych znaków 2–60 jednostek UTF-16, wiek całkowity 18–120. Od 1 do 10 z 22 języków i od 1 do 4 stylów (backpacking, comfort, trekking, city_break). API odrzuca obce kody, usuwa powtórzenia w kolejności wejścia i przyjmuje najwyżej 32 elementy wejściowe na listę. |
+| Opis, edycja, odświeżenie, konflikt wersji | zaimplementowane | Bio opcjonalne do 1000 jednostek UTF-16 po przycięciu. Pusty tekst lub null usuwa opis. Nazwa i bio nie przyjmują znaków < ani >. PATCH sprawdza wersję, pominięte pola zachowują wartość. Data wieku to dzień UTC pierwszego zapisu lub zmiany wieku. |
+| Każdy rodzaj kontaktu, walidacja, dodanie, edycja, usunięcie | zaimplementowane | Wszystkie opcjonalne. E-mail do 254 i walidacja adresu. Instagram 1–30 liter ASCII, cyfr, kropek lub podkreśleń po usunięciu jednego początkowego @. WhatsApp wymaga + i 2–15 cyfr, pierwsza 1–9. API przycina wartości. PUT zastępuje zestaw, brak pola, null lub same odstępy usuwają wartość. Sprawdzany jest format. |
+| Oddzielny e-mail logowania, własna edycja i odczyt | zaimplementowane | Właściciel widzi login, własne kontakty i stan profilu. Właściciela wyznacza aktywna sesja. Kontakt nie jest kopiowany z loginu. Zapis wymaga CSRF i dozwolonego Origin. |
+| Profil publiczny, API, SSR i konta nieaktywne | zaimplementowane | Gość i inne konto widzą tę samą nazwę, wiek, opis, języki i style. Publiczne DTO zawiera dodatkowo userId. Publiczny HTML ma noindex. Prywatny edytor pobiera dane po stronie klienta. Brak profilu, BLOCKED i DELETION_PENDING dają publiczne 404. |
+| Dostęp do kontaktów na wyprawie | zaimplementowane | Osobny odczyt konkretnej widocznej opublikowanej wyprawy tylko między aktywnym organizatorem i aktywnym zaakceptowanym uczestnikiem, w obu kierunkach. Zamknięcie zachowuje dostęp, wycofanie go odbiera. Inny uczestnik i administrator bez relacji nie mają wyjątku. |
+| Formularze, komunikaty, PL/EN | częściowo zaimplementowane | Etykiety, słowniki, błędy i statusy mają tłumaczenia. Błąd serwerowy pola może być wyświetlony dwukrotnie (pole i alert). Natywne komunikaty zależą od języka przeglądarki. Opis prywatności w obu językach zapowiada udostępnianie kontaktów w przyszłości mimo działającego etapu 5. |
+| Obsługa telefonu | częściowo zaimplementowane | Formularz ma etykiety, zawijane opcje i textarea o szerokości kontenera. Czytelność, fokus, klawiatura i wygoda obsługi wymagają próby na telefonie. |
+
+### Ręczny odbiór na localhost
+
+Uruchom aplikację według README. Użyj wyłącznie kont testowych. A to nowe konto lokalne z adresem kontrolowanym przez autora (do próby R również powiązanym z Google), B to drugi użytkownik w osobnym profilu przeglądarki, G to okno prywatne bez sesji. Przykładowe kontakty są fikcyjne. Przejdź w kolejności tabeli, z próbą 3-W w trakcie 3-S, po akceptacji i przed zamknięciem. Po zapisie sprawdzaj komunikat i odpowiedź w panelu Sieć. Flagi czytaj z GET /api/v1/me w tej samej sesji.
+
+| ID | Stan i konta | Dane i czynności | Oczekiwany rezultat |
+| --- | --- | --- | --- |
+| 3-A | Nowe A | Otwórz /account i /api/v1/me. Zanotuj userId, wejdź na /profiles/{userId}. | Pola puste, brak linku publicznego, trzy flagi false, publiczny adres 404. Login wyłącznie w prywatnym koncie. |
+| 3-A2 | A bez profilu | Zapisz sam Instagram @solo. Odczytaj flagi, wyczyść kontakt i zapisz kontakty. | Kolejno false/true/false i false/false/false (profil/kontakt/gotowość). |
+| 3-B | A puste | Wpisz „  Mira  ”, 29, wybierz pl, en i trekking. Pozostaw opis i kontakty puste, zapisz profil. | Mira, wersja 1, data wieku z dzisiaj UTC, link publiczny, true/false/false. |
+| 3-C | A zapisane | Odśwież, wyloguj się i zaloguj hasłem. Wróć do konta. | Ten sam UUID i wszystkie zapisane wartości. |
+| 3-D | A | Zmień nazwę na Mira2, wiek na 30, pl na de, trekking na comfort, dopisz dwuwierszowe bio. Zapisz, odśwież i otwórz link publiczny. Potem usuń sam opis. | Każda zmiana trwała, podziały wierszy widoczne. Usunięty opis ma null. Zmiana samego opisu zachowuje datę wieku. |
+| 3-E | A, poprawne pozostałe pola | Osobno usuń nazwę, wiek, wszystkie języki i wszystkie style. Za każdym razem zapisz i przywróć poprawną wartość. Wybierz 10, potem 11 języków. | Braki blokują zapis, 10 przechodzi, 11 daje błąd języków. Po odświeżeniu ostatni poprawny zapis. |
+| 3-F | A | Zapisuj kolejno 17, 18, 120, 121 i 18.5, pozostałe pola poprawne. | Tylko 18 i 120 przechodzą. Po ostatniej próbie odświeżenie pokazuje 120. |
+| 3-G | A | Nazwa kolejno 1, 2, 60 i 61 liter a, bio 1000 i 1001 liter b. Wklej także „<Mira>” do nazwy, potem do opisu przy poprawnej nazwie. | 2 i 60 oraz 1000 przechodzą. maxlength ogranicza wklejanie, sprawdź faktyczną długość. API odrzuca nadmiar, nawiasy i za krótką nazwę. Przywróć Mira2. |
+| 3-H | A bez kontaktów | Wpisz tylko kontakt@example.test, zapisz kontakty i odśwież. Zastąp go samym @mira_3, następnie samym +48123456789. | Za każdym razem jeden kontakt, login bez zmian, gotowość true, nazwa Instagram bez @. |
+| 3-I | A | Osobno próbuj adresu bez @, Instagramu @@mira, adresu URL i 31 liter, WhatsApp 48123, +01, +1 i numeru ze spacją. Spróbuj też @a, 30 liter, +12 i +123456789012345. | Pierwsza grupa odrzucona lub ograniczona przez pole. Poprawne granice przechodzą. Przy błędzie serwera szkic pozostaje, po odświeżeniu wraca ostatni zapis. |
+| 3-J | A | Wypełnij wszystkie trzy jak w H, zapisz. Zmień telefon, zapisz. Usuń Instagram i zapisz. | Nowy telefon i ten sam e-mail zachowane, Instagram pusty. |
+| 3-K | A | Wyczyść pozostałe kontakty, zapisz, odśwież. Potem ponownie zapisz wszystkie trzy do prób prywatności. | Po usunięciu true/false/false, profil publiczny dostępny. Po dodaniu true/true/true. |
+| 3-L | A, dwie karty konta z tą samą wersją | W pierwszej zapisz bio „Pierwsza”, w drugiej szkic „Druga”. Zapisz w drugiej, potem kliknij przeładowanie przy błędzie. | 409 PROFILE_VERSION_CONFLICT, szkic widoczny do kliknięcia. Potem „Pierwsza” i możliwość ponownej edycji. |
+| 3-L2 | A, ponownie otwarte dwie karty | W pierwszej zmień Instagram, w drugiej zmień tylko telefon i zapisz kontakty. Odśwież pierwszą. | Ostatni PUT wygrywa dla całego zestawu, także starsza wartość Instagramu. Brak kontroli wersji kontaktów. |
+| 3-M | B, adres publiczny A | Wejdź na profil A, potem /account i /api/v1/me. Edytuj własny profil B i ponownie obejrzyj A. | B widzi publiczne pola A, edytor oraz prywatna odpowiedź dotyczą B, dane A pozostają takie same. |
+| 3-N | G | Otwórz adres A w PL i z prefiksem /en, potem /api/v1/me. | Oba profile dostępne bez logowania. Prywatny endpoint 401. |
+| 3-O | A, B i G | Zapisz dokładne prywatne wartości A. W B i G wyszukaj każdą w źródle publicznego HTML (łącznie z payloadem) i JSON /api/v1/profiles/{userId}. W A sprawdź też źródło /account. | Zero trafień dla loginu i trzech kontaktów. JSON ma dokładnie userId, displayName, age, bio, languages, travelStyles. Dane konta widoczne właścicielowi po załadowaniu JS. |
+| 3-P | A | Na zapisanym koncie przełącz PL → EN, wywołaj błąd Instagramu, sprawdź etykiety, status, języki, style i profil publiczny. Wróć do PL. | Te same wartości, przetłumaczone etykiety i błędy aplikacji, brak surowych kluczy. |
+| 3-Q | A, telefon lub emulacja 360 px | W pionie i poziomie przewiń oba formularze, zaznacz język i styl, wpisz bio, wywołaj błąd telefonu, popraw go i zapisz. | Pola, błędy i oba przyciski osiągalne przy otwartej klawiaturze, brak poziomego przewijania i utraty danych. Zanotuj model, przeglądarkę i szerokość. |
+| 3-R | A, lokalnie skonfigurowane Google | Zapisz UUID, profil i kontakty. Połącz kontrolowane Google z A według 2B, wyloguj się i wejdź przez Google. Zmień bio, wyloguj się i wejdź hasłem. | Jeden UUID, te same kontakty, zmienione bio także po powrocie do hasła. |
+| 3-R2 | Świeże konto wyłącznie Google | Po pierwszej zgodzie na regulamin otwórz konto, wykonaj A, B i H, wyloguj się i wróć przez to samo Google. | Pusty początek, bez automatycznego kontaktu lub profilu Google, potem zapisane wartości i ten sam UUID. |
+| 3-S | A organizator, B uczestnik, oba gotowe, widoczna testowa wyprawa A | B zgłasza się. Sprawdź w obu sesjach GET /api/v1/trips/{id}/contacts/{UUID drugiej strony} przed akceptacją, po niej i po zamknięciu wyprawy. B wycofuje zgłoszenie. Powtórz odczyt. | PENDING odmowa, ACCEPTED dostęp do bieżących kontaktów w obu kierunkach także po zamknięciu, po wycofaniu odmowa. Publiczny profil stale jak w O. |
+| 3-T | Istniejące nieaktywne konto testowe z profilem | W G otwórz jego stronę i publiczny JSON, porównaj z nowym losowym UUID. Użyj przygotowanego konta BLOCKED i DELETION_PENDING, jeśli dostępne. | Publiczne 404 dla każdego. Bez takiej próbki odnotuj pokrycie backendowe, zachowaj konta autora. |
+| 3-U | A, otwarty panel Sieć | W narzędziach przeglądarki skopiuj własny poprawny PATCH jako fetch, zachowaj token CSRF i aktualną wersję z /me. Powtórz z samym bio i wersją, następnie z languages równym ["en","pl","en"], potem ["xx"] i listą 33 razy "en". Po sukcesie pobieraj nową wersję. | Częściowa zmiana zachowuje resztę pól, poprawna lista daje en,pl. Obcy kod i 33 elementy dają 400. Brak wersji daje 400, ponowienie starej wersji 409. |
+| 3-V | A i B z zapisanymi profilami | W sesji B skopiuj jego własny zapis jak w U, dodaj userId konta A. Powtórz dla PUT kontaktów. Następnie wyślij prawidłowy zapis bez nagłówka CSRF. W sesji A odśwież oba formularze. | Obce pole daje 400, brak CSRF daje 403. Dane A pozostają zgodne z ostatnim własnym zapisem. |
+| 3-W | A, B i drugi zaakceptowany uczestnik tej samej testowej wyprawy, przed zamknięciem w S | Jako B odczytaj kontakty drugiego uczestnika pod adresem z S. Jako A odczytaj kontakty B, zmień kontakt w B i ponów odczyt w A. | Między uczestnikami 403. Organizator widzi aktualny kontakt B bez ponownej akceptacji. |
+
+Wynik każdego wiersza autor zapisuje jako OK, problem lub pominięty z przyczyną. Przy rozbieżności warto podać ID, język, urządzenie, stan początkowy, odpowiedź HTTP i ostatni poprawny zapis.

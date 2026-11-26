@@ -9,8 +9,10 @@ const confirmation = ref('')
 const passwordField = useTemplateRef<HTMLInputElement>('passwordField')
 const confirmationField = useTemplateRef<HTMLInputElement>('confirmationField')
 
+const newPassword = computed(() => props.mode === 'register' || props.mode === 'reset')
+
 watchPostEffect(() => {
-  if (props.mode !== 'register') return
+  if (!newPassword.value) return
   const lengthError = (value: string) => value && (value.length < 12 || value.length > 1024)
     ? t('auth.passwordLength') : ''
   passwordField.value?.setCustomValidity(lengthError(password.value))
@@ -26,7 +28,6 @@ const hydrated = ref(false)
 const done = ref(false)
 const errorCode = ref('')
 let token = ''
-const newPassword = computed(() => props.mode === 'register' || props.mode === 'reset')
 onMounted(() => {
   hydrated.value = true
   if (props.mode === 'login' || props.mode === 'register') $fetch<{ enabled: boolean }>('/api/v1/auth/google/config').then(c => { googleEnabled.value = c.enabled }).catch(() => {})
@@ -39,13 +40,12 @@ async function google() {
   busy.value = true
   errorCode.value = ''
   try {
-    const result = await post('google/start', { mode: props.mode, locale: locale.value, acceptTerms: accepted.value, termsVersion: 'local-draft-2' }) as { url: string }
+    const result = await post('google/start', { locale: locale.value }) as { url: string }
     window.location.assign(result.url)
   } catch { errorCode.value = 'UNKNOWN'; busy.value = false }
 }
 async function submit() {
   errorCode.value = ''
-  if (props.mode === 'reset' && password.value !== confirmation.value) { errorCode.value = 'PASSWORD_MISMATCH'; return }
   busy.value = true
   try {
     if (props.mode === 'register') {
@@ -69,12 +69,11 @@ async function submit() {
   <form v-else @submit.prevent="submit"><fieldset :disabled="!hydrated || busy">
     <label v-if="mode !== 'reset'">{{ t('auth.email') }}<input v-model="email" type="email" name="email" autocomplete="email" maxlength="254" required></label>
     <label v-if="mode !== 'forgot'">{{ t('auth.password') }}<input ref="passwordField" v-model="password" type="password" name="password" :autocomplete="newPassword ? 'new-password' : 'current-password'" minlength="12" maxlength="1024" required></label>
-    <p v-if="mode === 'reset'">{{ t('auth.passwordHint') }}</p>
     <label v-if="newPassword">{{ t('auth.confirmation') }}<input ref="confirmationField" v-model="confirmation" type="password" name="confirmation" autocomplete="new-password" minlength="12" maxlength="1024" required></label>
     <label v-if="mode === 'register'" class="checkbox"><input v-model="accepted" type="checkbox" required> {{ t('auth.accept') }} <NuxtLink :to="localePath('/terms')" target="_blank">{{ t('auth.terms') }}</NuxtLink> (local-draft-2)</label><NuxtLink v-if="mode === 'register'" :to="localePath('/privacy')">{{ t('legal.privacy') }}</NuxtLink>
     <p v-if="errorCode" role="alert">{{ t('auth.errors.' + errorCode) }}</p>
     <button type="submit" :disabled="busy">{{ busy ? t('loading') : t('auth.' + mode) }}</button>
-    <button v-if="googleEnabled" type="button" :disabled="busy || (mode === 'register' && !accepted)" @click="google">{{ t('google.continue') }}</button>
+    <button v-if="googleEnabled" type="button" :disabled="busy" @click="google">{{ t('google.continue') }}</button>
   </fieldset></form>
   <p v-if="mode === 'login'"><NuxtLink :to="localePath('/forgot-password')">{{ t('auth.forgot') }}</NuxtLink></p>
 </template>

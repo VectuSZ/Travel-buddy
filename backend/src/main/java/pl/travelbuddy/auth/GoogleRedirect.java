@@ -15,6 +15,8 @@ public class GoogleRedirect implements OidcRedirectFilter {
   }
   var cookie=c.routingContext().request().getCookie("google-flow");
   if(state==null || cookie==null) throw new AuthProblem(400,"GOOGLE_FLOW_INVALID");
-  attempts.bind(cookie.getValue(),state);
+  var attempt=attempts.bind(cookie.getValue(),state);
+  if(attempt.sessionToken()==null || attempt.linking()) c.additionalQueryParams().set("prompt","select_account");
+  else c.additionalQueryParams().set("max_age","0");
  }
 }

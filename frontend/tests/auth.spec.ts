@@ -1,7 +1,7 @@
 import { test, expect } from '@playwright/test'
 
 for (const lang of ['pl', 'en']) {
-  test(`account and Mailpit password reset (${lang})`, async ({ page, context, request }) => {
+  test(`account and Mailpit password reset (${lang})`, async ({ page, context, request, baseURL }) => {
     const prefix = lang === 'en' ? '/en' : ''
     const email = `e2e-${Date.now()}-${lang}@example.test`
     const password = 'Local test long password 123!'
@@ -75,15 +75,44 @@ for (const lang of ['pl', 'en']) {
       return messageId
     }).not.toBe('')
     const mail = await (await request.get(`http://localhost:8025/api/v1/message/${messageId}`)).json()
-    const link = mail.Text.match(/http:\/\/localhost:3000\/[^\s]+/)[0]
+    const link = mail.Text.match(/https?:\/\/[^\s]+/)[0]
+    expect(new URL(link).origin).toBe(baseURL)
     expect(link).toContain(prefix + '/reset-password#token=')
     const external: string[] = []
-    page.on('request', r => { if (!r.url().startsWith('http://localhost:3000') && !r.url().startsWith('ws://localhost:3000')) external.push(r.url()) })
+    page.on('request', r => { if (new URL(r.url().replace(/^ws/, 'http')).origin !== baseURL) external.push(r.url()) })
     const response = await page.goto(link)
     expect(response!.headers()['referrer-policy']).toBe('no-referrer')
     await expect(page).toHaveURL(new RegExp(prefix + '/reset-password$'))
-    await page.locator('input[name=password]').fill(changed)
-    await page.locator('input[name=confirmation]').fill(changed)
+    await expect(page.locator('main')).not.toContainText(/długiej frazy|Long passphrases/)
+    const resetRequests: string[] = []
+    page.on('request', r => {
+      if (r.url().endsWith('/api/v1/auth/password-reset/confirm')) resetRequests.push(r.method())
+    })
+    await expect(page.locator('main')).not.toContainText(/długiej frazy|Long passphrases/)
+    await submit().click()
+    await expect(first).toBeFocused()
+    expect(await first.evaluate((input: HTMLInputElement) => input.validity.valueMissing)).toBe(true)
+    const lengthMessage = lang === 'pl' ? 'Hasło musi mieć od 12 do 1024 znaków.' : 'Password must be between 12 and 1024 characters.'
+    await first.fill('x'.repeat(11))
+    await submit().click()
+    await expect(first).toHaveJSProperty('validationMessage', lengthMessage)
+    await expect(first).toHaveAttribute('maxlength', '1024')
+    // Native maxlength caps typing. Exercise validation of an overlong value supplied by script.
+    await first.evaluate((input: HTMLInputElement) => {
+      input.value = 'x'.repeat(1025)
+      input.dispatchEvent(new Event('input', { bubbles: true }))
+    })
+    await submit().click()
+    await expect(first).toHaveJSProperty('validationMessage', lengthMessage)
+    await first.fill(changed)
+    await expect(first).toHaveJSProperty('validationMessage', '')
+    await confirm.fill(changed + 'x')
+    await submit().click()
+    await expect(confirm).toBeFocused()
+    await expect(confirm).toHaveJSProperty('validationMessage', lang === 'pl' ? 'Hasła muszą być takie same.' : 'Passwords must match.')
+    await confirm.fill(changed)
+    await expect(confirm).toHaveJSProperty('validationMessage', '')
+    expect(resetRequests).toHaveLength(0)
     await submit().click()
     await expect(page.locator('[role=status]')).toBeVisible()
     expect(external).toEqual([])

@@ -1,8 +1,8 @@
 # Status projektu
 
-## Stan na 25 listopada 2026
+## Stan na 26 listopada 2026
 
-Etapy 1–7B są zaimplementowane lokalnie. Autor odebrał 1 i 2A. Trwa odbiór 2B, następnie 3 → 4 → 5 → 6 → 7A → 7B. Dowody i otwarte próby pozostają w [historii odbiorów](ACCEPTANCE.md).
+Etapy 1–7B są zaimplementowane lokalnie. Autor odebrał 1, 2A i 2B. Etap 3 oczekuje na ręczne sprawdzenie profilu, kontaktów i prywatności według checklisty w ACCEPTANCE.md. Po decyzji autora kolejność to 4 → 5 → 6 → 7A → 7B. Dowody i otwarte próby pozostają w [historii odbiorów](ACCEPTANCE.md).
 
 | Etap | Zakres | Status |
 | --- | --- | --- |

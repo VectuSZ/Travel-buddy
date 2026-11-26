@@ -242,7 +242,7 @@ PostgreSQL i Mailpit bez usuwania wolumenu danych.
 
 Bez konfiguracji Google aplikacja działa jak wcześniej, a przycisk Google
 jest ukryty. Nie trzeba tworzyć projektu w Google, aby uruchomić testy.
-Account linking i odłączanie metod logowania nie są zaimplementowane.
+Konto lokalne można powiązać z Google po potwierdzeniu aktualnego hasła przy konflikcie adresów lub z ustawień konta.
 
 ## Konfiguracja przez właściciela konta Google
 
@@ -283,21 +283,12 @@ Aby wyłączyć integrację, ustaw GOOGLE_OIDC_ENABLED=false i zrestartuj backen
 
 ## Ręczny test prawdziwego Google — do wykonania po konfiguracji
 
-- Rejestracja: zaakceptuj regulamin roboczy i wybierz „Kontynuuj z Google”.
-  Bez akceptacji przycisk jest nieaktywny. Nie trzeba wypełniać pól hasła.
-- Użyj konta testowego Google z adresem, którego jeszcze nie ma w aplikacji.
-  Po powrocie powinien otworzyć się ekran konta z własnym e-mailem.
-- Wyloguj się. Na ekranie logowania użyj Google ponownie; konto powinno
-  pozostać to samo, bez ponownej akceptacji i bez nowej rejestracji.
-- Sprawdź PL i EN. Język oraz zgoda pochodzą z zapamiętanego startu,
-  a nie z parametrów callbacku.
-- Anuluj wybór/zgodę Google, jeżeli dostawca pokazuje taką opcję: aplikacja
-  powinna pokazać komunikat anulowania. Zamknięcie karty Google nie wysyła
-  callbacku; można wtedy wrócić i rozpocząć nową próbę.
-- Dla nowej tożsamości rozpoczętej z ekranu logowania powinno pojawić się
-  skierowanie do rejestracji, zamiast utworzenia konta bez zgody.
+- Na ekranie logowania lub rejestracji wybierz „Kontynuuj z Google” i wskaż konto w selektorze Google.
+- Nowa tożsamość z wolnym, zweryfikowanym adresem wraca na ekran regulaminu. Sprawdź linki do obu dokumentów. Rezygnacja wraca do logowania. Akceptacja tworzy konto i przenosi na ekran konta.
+- Wyloguj się, wybierz inne konto w tej samej przeglądarce, a następnie wróć do pierwszego. Istniejące konto przechodzi bezpośrednio na ekran konta. Powtórz w PL i EN.
+- Anuluj proces na ekranie dostawcy, jeśli udostępnia odmowę. Po powrocie sprawdź komunikat i link logowania.
 - Użyj innego konta Google, którego e-mail wcześniej zarejestrujesz hasłem:
-  powinien pojawić się konflikt, a logowanie dotychczasowym hasłem nadal
+  powinna pojawić się propozycja połączenia z potwierdzeniem hasłem. Logowanie dotychczasowym hasłem nadal
   działać. Nie testuj tego, kasując istniejące dane lub wolumen.
 - W Network sprawdź callback przez localhost:3000 oraz końcowe przekierowanie
   do /account lub /en/account. Po zakończeniu działa cookie session;
@@ -315,9 +306,14 @@ redirect URI) może wymagać poprawki w Console, zanim Google pozwoli wrócić.
 | Endpoint | Działanie |
 | --- | --- |
 | GET /api/v1/auth/google/config | Czy przycisk Google jest włączony |
-| POST /api/v1/auth/google/start | JSON mode: login/register, locale: pl/en, acceptTerms, termsVersion; wymaga CSRF i Origin |
+| POST /api/v1/auth/google/start | Wspólny start z polem locale (pl/en). Opcjonalne link=true rozpoczyna łączenie z ustawień, a reauthenticate=true służy potwierdzeniu usuwania konta. Wymaga CSRF i Origin |
 | GET /api/v1/auth/google/authorize | Przekierowanie do dostawcy dla wcześniej rozpoczętej próby |
 | GET /api/v1/auth/google/callback | Callback obsługiwany i weryfikowany przez Quarkus OIDC |
+| GET /api/v1/auth/google/methods | Dostępne metody logowania właściciela bieżącej sesji |
+| GET /api/v1/auth/google/link | Dane ekranu oczekującego powiązania dla bieżącej przeglądarki |
+| POST /api/v1/auth/google/link | Potwierdzenie aktualnym hasłem albo anulowanie próby. Wymaga Origin i CSRF |
+| GET /api/v1/auth/google/consent | Potwierdzenie oczekującej próby dla bieżącej przeglądarki |
+| POST /api/v1/auth/google/consent | Jednorazowa akceptacja aktualnej wersji lub rezygnacja. Wymaga CSRF i Origin |
 | GET /api/v1/auth/google/error | Bezpieczne mapowanie błędu/anulowania |
 
 Start zwraca wyłącznie wewnętrzną ścieżkę w polu url. Nie obsługuje dowolnego

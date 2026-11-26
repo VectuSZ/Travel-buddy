@@ -14,7 +14,7 @@ public class GoogleHttpHeaders {
   if(context.request().path().startsWith("/api/v1/auth/google/")) {
    context.addHeadersEndHandler(ignored -> {
     context.response().putHeader("Cache-Control","no-store").putHeader("Referrer-Policy","no-referrer");
-    if(context.request().method()==io.vertx.core.http.HttpMethod.GET && context.response().getStatusCode()>=400) {
+    if(context.request().method()==io.vertx.core.http.HttpMethod.GET && context.response().getStatusCode()>=400 && !context.request().path().endsWith("/methods")) {
      var cookie=context.request().getCookie("google-flow");
      String locale=attempts.locale(cookie==null?null:cookie.getValue());
      context.response().setStatusCode(303).putHeader("Location",frontend+(locale.equals("en")?"/en":"")+"/google-result?code=GOOGLE_FAILED");
