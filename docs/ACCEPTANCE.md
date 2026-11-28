@@ -390,7 +390,7 @@ Formularze resetu i rejestracji korzystają z tej samej walidacji pól. Usunięt
 
 ## Etap 3 — profil i prywatne kontakty, 26 listopada 2026
 
-**Oczekuje na ręczny odbiór autora.** Podstawą oceny są etap 3 PLAN, decyzje etapów 3 i 5, migracja V5, ProfileResource, ProfileService, ProfileDtos, ApplicationService.contacts, ProfileEditor.vue, strony account i profiles/[id] oraz oba słowniki i18n. Oceny opisują implementację. Wyniki uruchomień podano osobno.
+**Odebrany przez autora bez uwag wymagających poprawek.** Autor sprawdził własny profil, prywatne kontakty i publiczny widok profilu. Ręczna weryfikacja udostępnienia kontaktów innemu użytkownikowi po akceptacji zgłoszenia należy do etapu 5. Poniżej zachowano przebieg odbioru. Podstawą oceny są etap 3 PLAN, decyzje etapów 3 i 5, migracja V5, ProfileResource, ProfileService, ProfileDtos, ApplicationService.contacts, ProfileEditor.vue, strony account i profiles/[id] oraz oba słowniki i18n. Oceny opisują implementację. Wyniki uruchomień podano osobno.
 
 | Wymagania | Ocena | Zachowanie |
 | --- | --- | --- |
@@ -404,9 +404,22 @@ Formularze resetu i rejestracji korzystają z tej samej walidacji pól. Usunięt
 | Formularze, komunikaty, PL/EN | częściowo zaimplementowane | Etykiety, słowniki, błędy i statusy mają tłumaczenia. Błąd serwerowy pola może być wyświetlony dwukrotnie (pole i alert). Natywne komunikaty zależą od języka przeglądarki. Opis prywatności w obu językach zapowiada udostępnianie kontaktów w przyszłości mimo działającego etapu 5. |
 | Obsługa telefonu | częściowo zaimplementowane | Formularz ma etykiety, zawijane opcje i textarea o szerokości kontenera. Czytelność, fokus, klawiatura i wygoda obsługi wymagają próby na telefonie. |
 
-### Ręczny odbiór na localhost
+### Wyniki automatyczne z 26 listopada
 
-Uruchom aplikację według README. Użyj wyłącznie kont testowych. A to nowe konto lokalne z adresem kontrolowanym przez autora (do próby R również powiązanym z Google), B to drugi użytkownik w osobnym profilu przeglądarki, G to okno prywatne bez sesji. Przykładowe kontakty są fikcyjne. Przejdź w kolejności tabeli, z próbą 3-W w trakcie 3-S, po akceptacji i przed zamknięciem. Po zapisie sprawdzaj komunikat i odpowiedź w panelu Sieć. Flagi czytaj z GET /api/v1/me w tej samej sesji.
+Testy korzystały z nowej lokalnej bazy PostgreSQL 17.6 `travel_buddy_acceptance_3_1126`. Backend skompilowano z kopii ówczesnego drzewa roboczego. Playwright korzystał z osobnego schematu `profile_ui`, frontendu na 3107 i backendu na 8087.
+
+| Zestaw | Wynik | Zakres potwierdzony wykonaniem |
+| --- | --- | --- |
+| ProfileResourceTest | 6/6 | Pusty profil, zapis częściowy, granice wieku i długości, niedozwolone pola, normalizacja, data wieku, flagi przed i po podaniu kontaktów, zastąpienie i usunięcie kontaktów, publiczna lista pól, CSRF, nieaktywne konta, konflikt wersji i wyścig pierwszego zapisu. |
+| GoogleOidcTest | 14/14 | Kontrolowany dostawca OIDC, nowe konto Google, ponowne logowanie, zachowanie UUID, profilu i kontaktu podczas łączenia kont. Pełna edycja profilu konta wyłącznie Google oraz rzeczywiste przełączanie metod w przeglądarce pozostają w 3-R i 3-R2. |
+| ApplicationServiceTest | 0/5 wprost, 5/5 odziedziczonych metod przez ModerationTest | Pierwszy przebieg zakończył się pięcioma błędami inicjalizacji CDI (niejednoznaczny wybór klasy testowej). Te same metody uruchomiono przez klasę potomną. Potwierdziły m.in. wzajemny dostęp po akceptacji, odmowę między uczestnikami, cofnięcie dostępu, zachowanie dostępu po zamknięciu oraz prywatny kontrakt HTTP. |
+| Playwright tests/profiles.spec.ts | 1/1, Chromium, świeży build Nuxta | Dwa konta lokalne, walidacja, trwałość po odświeżeniu, szkic po 409, odrzucenie cudzych pól, reset kontaktów, publiczne DTO, brak testowych sekretów w publicznym HTML PL/EN i źródle /account. Czas końcowego przebiegu 16,3 s. |
+
+Pierwsze dwie próby Chromium zatrzymały się na oczekiwaniu na /account podczas rejestracji. Po rozgrzaniu serwera ten sam test przeszedł, a po osobnym buildzie z aktualnych wtedy źródeł przeszedł ponownie. Wynik dodatkowej próby mobilnego Chromium nie zachował się po wznowieniu sesji. Próba 3-Q pozostaje otwarta. Wyniki powyżej pochodzą z wykonanych przebiegów z 26 listopada.
+
+### Wykonane przez autora — 3-A do 3-N
+
+Poniższa tabela zachowuje przebieg wcześniejszych prób. **Dalszy odbiór zaczyna się w sekcji [Od 3-O — odbiór użytkownika](#odbior-uzytkownika-3o).**
 
 | ID | Stan i konta | Dane i czynności | Oczekiwany rezultat |
 | --- | --- | --- | --- |
@@ -426,15 +439,170 @@ Uruchom aplikację według README. Użyj wyłącznie kont testowych. A to nowe k
 | 3-L2 | A, ponownie otwarte dwie karty | W pierwszej zmień Instagram, w drugiej zmień tylko telefon i zapisz kontakty. Odśwież pierwszą. | Ostatni PUT wygrywa dla całego zestawu, także starsza wartość Instagramu. Brak kontroli wersji kontaktów. |
 | 3-M | B, adres publiczny A | Wejdź na profil A, potem /account i /api/v1/me. Edytuj własny profil B i ponownie obejrzyj A. | B widzi publiczne pola A, edytor oraz prywatna odpowiedź dotyczą B, dane A pozostają takie same. |
 | 3-N | G | Otwórz adres A w PL i z prefiksem /en, potem /api/v1/me. | Oba profile dostępne bez logowania. Prywatny endpoint 401. |
-| 3-O | A, B i G | Zapisz dokładne prywatne wartości A. W B i G wyszukaj każdą w źródle publicznego HTML (łącznie z payloadem) i JSON /api/v1/profiles/{userId}. W A sprawdź też źródło /account. | Zero trafień dla loginu i trzech kontaktów. JSON ma dokładnie userId, displayName, age, bio, languages, travelStyles. Dane konta widoczne właścicielowi po załadowaniu JS. |
-| 3-P | A | Na zapisanym koncie przełącz PL → EN, wywołaj błąd Instagramu, sprawdź etykiety, status, języki, style i profil publiczny. Wróć do PL. | Te same wartości, przetłumaczone etykiety i błędy aplikacji, brak surowych kluczy. |
-| 3-Q | A, telefon lub emulacja 360 px | W pionie i poziomie przewiń oba formularze, zaznacz język i styl, wpisz bio, wywołaj błąd telefonu, popraw go i zapisz. | Pola, błędy i oba przyciski osiągalne przy otwartej klawiaturze, brak poziomego przewijania i utraty danych. Zanotuj model, przeglądarkę i szerokość. |
-| 3-R | A, lokalnie skonfigurowane Google | Zapisz UUID, profil i kontakty. Połącz kontrolowane Google z A według 2B, wyloguj się i wejdź przez Google. Zmień bio, wyloguj się i wejdź hasłem. | Jeden UUID, te same kontakty, zmienione bio także po powrocie do hasła. |
-| 3-R2 | Świeże konto wyłącznie Google | Po pierwszej zgodzie na regulamin otwórz konto, wykonaj A, B i H, wyloguj się i wróć przez to samo Google. | Pusty początek, bez automatycznego kontaktu lub profilu Google, potem zapisane wartości i ten sam UUID. |
-| 3-S | A organizator, B uczestnik, oba gotowe, widoczna testowa wyprawa A | B zgłasza się. Sprawdź w obu sesjach GET /api/v1/trips/{id}/contacts/{UUID drugiej strony} przed akceptacją, po niej i po zamknięciu wyprawy. B wycofuje zgłoszenie. Powtórz odczyt. | PENDING odmowa, ACCEPTED dostęp do bieżących kontaktów w obu kierunkach także po zamknięciu, po wycofaniu odmowa. Publiczny profil stale jak w O. |
-| 3-T | Istniejące nieaktywne konto testowe z profilem | W G otwórz jego stronę i publiczny JSON, porównaj z nowym losowym UUID. Użyj przygotowanego konta BLOCKED i DELETION_PENDING, jeśli dostępne. | Publiczne 404 dla każdego. Bez takiej próbki odnotuj pokrycie backendowe, zachowaj konta autora. |
-| 3-U | A, otwarty panel Sieć | W narzędziach przeglądarki skopiuj własny poprawny PATCH jako fetch, zachowaj token CSRF i aktualną wersję z /me. Powtórz z samym bio i wersją, następnie z languages równym ["en","pl","en"], potem ["xx"] i listą 33 razy "en". Po sukcesie pobieraj nową wersję. | Częściowa zmiana zachowuje resztę pól, poprawna lista daje en,pl. Obcy kod i 33 elementy dają 400. Brak wersji daje 400, ponowienie starej wersji 409. |
-| 3-V | A i B z zapisanymi profilami | W sesji B skopiuj jego własny zapis jak w U, dodaj userId konta A. Powtórz dla PUT kontaktów. Następnie wyślij prawidłowy zapis bez nagłówka CSRF. W sesji A odśwież oba formularze. | Obce pole daje 400, brak CSRF daje 403. Dane A pozostają zgodne z ostatnim własnym zapisem. |
-| 3-W | A, B i drugi zaakceptowany uczestnik tej samej testowej wyprawy, przed zamknięciem w S | Jako B odczytaj kontakty drugiego uczestnika pod adresem z S. Jako A odczytaj kontakty B, zmień kontakt w B i ponów odczyt w A. | Między uczestnikami 403. Organizator widzi aktualny kontakt B bez ponownej akceptacji. |
 
-Wynik każdego wiersza autor zapisuje jako OK, problem lub pominięty z przyczyną. Przy rozbieżności warto podać ID, język, urządzenie, stan początkowy, odpowiedź HTTP i ostatni poprawny zapis.
+<a id="odbior-uzytkownika-3o"></a>
+
+### Od 3-O — odbiór użytkownika
+
+Kontynuuj na swoim dotychczasowym koncie testowym A. Masz już zapisany profil, kontakty oraz sprawdzony widok innego użytkownika i gościa. Do dalszej części wystarczy zwykła przeglądarka. Zacznij na [stronie konta](http://localhost:3000/account). Jeśli pojawi się ekran logowania, zaloguj się dotychczasową metodą.
+
+#### 3-O. Chcę wiedzieć, komu podaję swój kontakt
+
+1. Na stronie konta znajdź nagłówki **Profil publiczny** i **Dane kontaktowe**. Przeczytaj krótkie opisy pod nimi. Wyobraź sobie, że chcesz zostawić numer dla przyszłego współtowarzysza. Czy z tego ekranu umiesz powiedzieć, gdzie go wpisać i kto go zobaczy?
+2. W części **Dane kontaktowe** odszukaj zapisany wcześniej WhatsApp i Instagram. Sprawdź, czy potrafisz rozpoznać numer z prefiksem kraju i nazwę użytkownika Instagrama. Ilekroć chcesz zmienić tylko kontakt, służy do tego przycisk **Zapisz kontakty**.
+3. Jeśli masz już testową wyprawę i zaakceptowane zgłoszenie z udziałem dwóch Twoich kont, możesz od razu zobaczyć kontakt w użyciu. Zaloguj się jako zaakceptowany uczestnik, otwórz [Moje zgłoszenia](http://localhost:3000/my-applications), znajdź odpowiednią wyprawę i kliknij **Pokaż kontakt**. Porównaj wyświetlone dane z kontaktami zapisanymi przez organizatora. Kliknij **Ukryj kontakt**. Bez gotowej wyprawy przejdź od razu do 3-P. Pełny przebieg zgłoszenia należy do odbioru etapu 5.
+
+**Oczekiwany efekt:** potrafisz wskazać pola publiczne i miejsce na prywatny kontakt. Z opisu powinno wynikać, że kontakt służy organizatorowi i zaakceptowanej osobie na wspólnej wyprawie. W szczegółach zgłoszenia aplikacja pokazuje zapisane dane jako tekst do odczytania lub skopiowania. Jeśli np. słowo „docelowo” pozostawia wątpliwość, zapisz ją jako uwagę do 3-O.
+
+#### 3-P. Chcę korzystać z tego samego profilu po angielsku
+
+1. Wróć na stronę konta A. Zapamiętaj zapisany Instagram. W górnym menu kliknij **PL**, potem **EN**.
+2. Znajdź **Contact details**. W polu **Instagram username** wpisz na próbę `@@mira` i kliknij **Save contacts**. Przeczytaj komunikat. Oceń, czy po angielsku rozumiesz, które pole poprawić.
+3. Przywróć wcześniej zapisany Instagram i kliknij **Save contacts**. Oczekuj **Saved.** Kliknij **View public profile**. Sprawdź, czy widzisz swój pseudonim i opis oraz angielskie nazwy języków i stylów.
+4. Kliknij **EN**, potem **PL**. Pseudonim i własny opis powinny pozostać takie same, a etykiety wrócić do polskiego.
+
+#### 3-Q. Chcę wygodnie poprawić opis na małym ekranie
+
+1. Jeśli masz już dostęp do lokalnej aplikacji na telefonie, użyj go. W przeciwnym razie otwórz stronę konta A na Macu i zwęź okno, przeciągając jego prawą krawędź w lewo. W uwagach podaj „telefon” lub „wąskie okno na Macu”.
+2. Przewiń formularz do **Bio**. Dopisz w nowym wierszu „Lubię krótkie wyprawy”. Kliknij **Zapisz profil**. Sprawdź, czy widzisz potwierdzenie i czy po odświeżeniu zdanie pozostało w polu.
+3. Przewiń do ostatniego pola kontaktowego i dotknij go lub kliknij. Sprawdź, czy możesz przeczytać cały numer, dotrzeć do **Zapisz kontakty** i wrócić do góry strony. Na telefonie sprawdź to także po otwarciu klawiatury.
+
+**Oczekiwany efekt:** pola i przyciski mieszczą się na ekranie, etykiety da się odczytać, a oba przyciski zapisu łatwo odróżnić. Jeśli coś znika lub wymaga przewijania w bok, podaj nazwę pola i urządzenie.
+
+#### 3-R. Chcę wrócić do swojego profilu inną metodą logowania
+
+1. Użyj testowego konta z hasłem i połączonym Google z odbioru 2B. Otwórz stronę konta, zapamiętaj pseudonim i jeden kontakt. Jeśli konto ma dopiero zostać połączone, w **Metody logowania** wybierz **Połącz konto z Google** i wskaż swoje testowe konto Google. Jeśli Google jest lokalnie niedostępne, zapisz „3-R pominięty – brak Google”.
+2. Kliknij **Wyloguj**, przejdź do logowania i wybierz **Kontynuuj z Google**. Wybierz dokładnie to samo konto Google. Na stronie konta odszukaj zapamiętany pseudonim i kontakt.
+3. Dopisz w bio słowo „Weekend”, kliknij **Zapisz profil** i poczekaj na potwierdzenie. Wyloguj się. Tym razem wpisz e-mail logowania i hasło tego konta. Otwórz profil.
+
+**Oczekiwany efekt:** po obu sposobach wejścia rozpoznajesz ten sam profil i kontakt. Po wejściu hasłem widzisz również słowo „Weekend”.
+
+**3-R2 — jeśli masz osobne testowe konto wyłącznie Google.** Wejdź przez Google tym drugim kontem. Jeśli to jego pierwsza wizyta, zaakceptuj regulamin. Na stronie konta oczekuj pustego formularza przy pierwszej wizycie albo wcześniej zapisanych danych przy kolejnej. Uzupełnij brakujące pola profilu (np. Mira Google, 29, polski, trekking), kliknij **Zapisz profil**, a w kontaktach zapisz Instagram `mira_google_3`. Wyloguj się i ponownie wybierz to samo Google. Oczekuj własnego pseudonimu i zapisanego Instagramu. Bez osobnego konta Google odnotuj pominięcie tej próby.
+
+**Tu kończy się odbiór autora.** Przekaż uwagi, np. „3-Q, wąskie okno, po wpisaniu bio nie widzę przycisku zapisu”. Jeśli wszystkie wykonane próby odpowiadają oczekiwaniom, możesz potwierdzić odbiór i wymienić pominięte próby.
+
+### Weryfikacja techniczna po stronie Codex
+
+Zakres obejmuje publiczne API i HTML, uprawnienia do kontaktów, nieaktywne konta, ochronę zapisu i walidację żądań. Wyniki wykonanych sprawdzeń zawiera sekcja „Wyniki automatyczne z 26 listopada”. Zmiana instrukcji nie stanowi nowego przebiegu testów. Dotychczasowe techniczne scenariusze 3-S–3-W są wyłączone z listy czynności autora.
+
+## Etap 4 — publikacja i wyszukiwanie wypraw
+
+**Oczekuje na ręczny odbiór autora.** Podstawa oceny: PLAN, etap 4, decyzje o migracji, cyklu życia, edytorze i wyszukiwaniu oraz poprawki prezentacji z odbioru etapu 1. Poniższe oceny dotyczą aktualnego kodu. Wyniki wykonanych prób technicznych zapisano osobno.
+
+| Wymaganie | Ocena | Ustalenie |
+| --- | --- | --- |
+| Szkic, pola, zapis i ponowne otwarcie | Zaimplementowane | Samo otwarcie edytora nie tworzy wpisu. Pierwszy zapis nadaje identyfikator. Szkic może być pusty, lecz podane wartości podlegają walidacji. Reguły poszczególnych pól poniżej. |
+| Kraje, miasta i kolejność | Zaimplementowane | Do 50 przystanków, każdy z krajem wybranym ze słownika; miasto opcjonalne. Można powtarzać kraje, usuwać i przesuwać wiersze. Słownik PL/EN obsługuje nazwy, kody i aliasy oraz klawiaturę. |
+| Terminy, budżet i liczba uczestników | Zaimplementowane | Daty włącznie, dodatkowa długość dla elastycznego okna, PLN na osobę, cel łącznie z organizatorem. Brak reguły zabraniającej dat przeszłych. |
+| Publikacja, kompletność konta i edycja otwartej wyprawy | Zaimplementowane | Wymagane kompletne ogłoszenie, zapisany profil i dowolny kontakt. Odmowa z powodu konta zachowuje szkic. Domyślne limity to 3 publikacje na dzień UTC i 5 otwartych wypraw. Po pierwszej akceptacji dodatkowe ograniczenia krajów, dat, budżetu i liczby osób należą do etapu 5. |
+| Konflikt wersji i zamknięcie | Zaimplementowane | Starszy zapis daje 409, formularz zachowuje wpisy do jawnego wczytania. Potwierdzenie zamknięcia dotyczy zapisanej wersji, pomija niezapisane zmiany. Brak ponownego otwarcia. |
+| Moje wyprawy, działania, trwałość, właściciel | Zaimplementowane | Jedna lista własnych wpisów z etykietą stanu. Szkic ma edycję, otwarta dodatkowo szczegóły i zamknięcie, zamknięta podgląd i szczegóły. Odczyt po odświeżeniu pochodzi z bazy. |
+| Lista publiczna, widoczność i prywatność | Zaimplementowane | Na liście tylko OPEN/VISIBLE z aktywnym organizatorem. Szczegóły także dla CLOSED. Publiczny DTO zawiera publiczny profil organizatora, prywatne pola kontaktów i login są wyłączone. Prywatny edytor ładuje się w przeglądarce. |
+| Filtry pojedyncze i łączone, granice | Zaimplementowane | Kraj wystarczy na jednym przystanku, styl na liście stylów. Wszystkie aktywne warunki muszą być spełnione. Daty i kwoty dopasowuje przecięcie przedziałów łącznie z końcami. Dla elastycznych dat przeszukiwane jest całe okno. |
+| Wiele lokalizacji, brak duplikatów, kolejność i strony | Zaimplementowane | Wyszukiwanie kraju przez EXISTS daje jeden wpis na wyprawę. Od najnowszej publikacji; przy remisie malejący UUID. Strony od 1, domyślnie po 20, API dopuszcza 1–50. |
+| Panel, adres wyników i czyszczenie | Zaimplementowane | Panel startuje zwinięty, po zastosowaniu zwija się i pokazuje liczbę aktywnych pól bez rozmiaru strony. Parametry i strona są w adresie. Ponowne zastosowanie wraca na pierwszą stronę. |
+| Kraje i kontynenty | Częściowo zaimplementowane na szczegółach | Karta grupuje kraje i kontynenty w kolejności pierwszego wystąpienia. Szczegóły pokazują kraje i miasta po kolei, bez kontynentów. |
+| Kompletność szczegółów, dostępne miejsca i status | Częściowo zaimplementowane | Widoczne tytuł, plan, trasa, daty, informacja o elastyczności, budżet, stan i liczba zajętych miejsc względem celu. Brak osobnej liczby wolnych miejsc, „Kogo szukam”, stylów, nazwy języka treści i liczby dni elastycznego wyjazdu. Pełna otwarta wyprawa ma specjalną etykietę. |
+| Przejście ze szczegółów do publicznego profilu organizatora | Niezaimplementowane w interfejsie szczegółów | API podaje publiczny profil, jeśli istnieje. Lista uczestników wypisuje nazwy bez linków i wyróżnienia roli organizatora. Profil podróżnika jako osobna strona działa od etapu 3. |
+| Adresy, przekierowania, SSR i SEO | Zaimplementowane | Publiczne szczegóły z tytułem w adresie; stary adres przekierowuje po sprawdzeniu widoczności. SSR, title, description, canonical i Open Graph. Listy z filtrami mają noindex,follow. |
+
+### Sprawdzenia techniczne — 28 listopada 2026
+
+Uruchomiono aktualne źródła w kopii tymczasowej, na lokalnym PostgreSQL 17.6. Nowa baza `travel_buddy_acceptance4_1128` służyła backendowi testowemu i osobnemu schematowi `ui4` dla testów przeglądarkowych. Nuxt działał na 3197, Quarkus na 8097. Test migracji dodatkowo utworzył i zachował dwie własne bazy.
+
+| Sprawdzenie | Wynik | Co potwierdzono |
+| --- | --- | --- |
+| Maven, TripResourceTest, TripSearchTest, TripLifecycleTest, TripMigrationTest | 6/6 (2 + 1 + 2 + 1), zero pominięć | Widoczność i własność, cykl życia, konflikt wersji, odmowy publikacji, zakresy i kolejność wyników bez duplikatów, niepoprawne filtry, migracja od zera i z V2 z zachowaniem demonstracyjnej wyprawy. |
+| Nuxt | typecheck i build poprawne | Sprawdzenie typów i kompilacja bieżących źródeł. |
+| Playwright, search.spec.ts i trips.spec.ts | Pierwszy przebieg 4/5, powtórka 5/5 w 53,4 s | Pierwsza rejestracja PL przekroczyła 5 s oczekiwania na formularz profilu. Przy powtórzeniu obu zestawów bez zmian asercji przeszły PL i EN, szkice, publikacja, konflikt, filtry, aliasy kraju, menu języka, adresy, zamknięcie i dostęp do zamkniętej strony. |
+| SSR | 4/4 | Skrypt check-ssr z podmienionym w kopii portem potwierdził widoczny tekst stron listy i szczegółów PL/EN po usunięciu skryptów. Test wyszukiwarki osobno sprawdził metadane i przekierowania. |
+| Dodatkowa próba edycji OPEN i prywatności | Poprawna | Po zmianie tytułu dawny adres dał 301 do nowego. W anonimowych odpowiedziach listy i szczegółów, zarówno HTML jak i JSON, był nowy tytuł, a nie było żadnej z czterech zapisanych wartości kontrolnych (login, e-mail kontaktowy, Instagram, WhatsApp). |
+| Chromium, wąski ekran | 4/4 (320 i 390 px × PL i EN) | Sprawdzono widoczność nazw trasy, otwarcie i zwinięcie panelu, przejście do szczegółów i szerokość dokumentu. Wygoda edytora i klawiatury na fizycznym telefonie pozostaje do oceny użytkownika. |
+
+Odtworzone poprawki UI etapu 1 obejmują kraje, kontynenty, aliasy, filtry i język. Historyczny test pierwszego odczytu po restarcie PostgreSQL jest w wynikach etapu 1 z 19 listopada. W tym odbiorze nie powtarzano restartu wspólnego serwera bazy. Oceny limitów tekstu, 50 przystanków i limitów publikacji wynikają z kodu; zestaw E2E nie wyczerpuje wszystkich kombinacji tych granic.
+
+### Instrukcja dla autora — etap 4
+
+#### 4-00. Zaczynam z nowymi kontami
+
+Ten odbiór działa pod **http://127.0.0.1:3104**. Zaczynasz od nowej lokalnej bazy `travel_buddy_manual_4_20261128` z dwiema przykładowymi publicznymi wyprawami. Wszystkie kolejne kroki wykonaj pod tym samym adresem.
+
+1. **Organizator A — zwykłe okno Chrome.** Otwórz [rejestrację](http://127.0.0.1:3104/register). Wpisz `etap4-organizator@example.test`, wybierz lokalne hasło testowe (co najmniej 12 znaków), powtórz je i zaznacz akceptację regulaminu. Wyślij formularz. Po rejestracji zobaczysz stronę konta z tym adresem e-mail. Zapisz login i hasło w swojej prywatnej notatce na czas tego odbioru.
+2. W części **Profil publiczny** wpisz „Mira Etap 4”, wiek 30, wybierz polski i trekking. Kliknij **Zapisz profil**. W części **Dane kontaktowe** wpisz e-mail kontaktowy `mira-kontakt4@example.test` i kliknij **Zapisz kontakty**. Odśwież stronę i sprawdź, czy widzisz nazwę i kontakt.
+3. **Drugi użytkownik B — osobna przeglądarka, np. Safari.** Otwórz [rejestrację](http://127.0.0.1:3104/register) i wykonaj krok 1 z adresem `etap4-podroznik@example.test` i własnym hasłem testowym. Zapisz je w notatce. Zostaw profil i kontakty B puste. Przydadzą się w 4-05. Pozostaw tę przeglądarkę otwartą.
+4. **Gość — okno incognito Chrome.** Otwórz [publiczną listę](http://127.0.0.1:3104/pl/wyprawy). Oczekuj opcji logowania i dwóch wypraw demonstracyjnych. Pozostaw to okno bez logowania.
+5. Wróć do zwykłego okna A i otwórz [Moje wyprawy](http://127.0.0.1:3104/my-trips). Oczekuj „Nie masz jeszcze wypraw”. Zacznij 4-01. Przy wznowieniu po przerwie otwórz [logowanie](http://127.0.0.1:3104/login) w odpowiednim oknie i użyj danych zapisanych w tej próbie.
+
+#### Twój odbiór UX — jedna podróż od szkicu do zamknięcia
+
+Po 4-00 możesz wykonać poniższą ścieżkę w swoim tempie. Szczegółowa lista pod spodem służy do odtworzenia konkretnego przypadku, gdy zechcesz mu się przyjrzeć.
+
+1. **4-01–4-03, tworzę plan.** Jako A wybierz **Moje wyprawy → Utwórz wyprawę**. Nazwij ją „Tatry z Mirą”, kliknij **Zapisz szkic**, wróć do listy i otwórz **Edytuj wyprawę**. Wpisz plan „Spacery po Tatrach” i „Szukam osób lubiących spokojne tempo”. Dodaj Polskę z miastem Zakopane oraz Słowację bez miasta, zmień ich kolejność. Wybierz polski, trekking, termin elastyczny 10–14 czerwca 2027, długość 3 dni, 4 osoby i budżet 100–500 PLN. Zapisz szkic. Czy pola pojawiały się w kolejności, w której naturalnie planujesz wyjazd? Czy było jasne, że 4 osoby obejmują Ciebie?
+2. **4-04–4-05, publikuję.** Kliknij **Opublikuj**, otwórz **Publiczne szczegóły** i skopiuj adres. Wróć do **Moje wyprawy → Edytuj wyprawę**, zmień tytuł na „Tatry z Mirą – wspólne szlaki” i kliknij **Zapisz zmiany**. Po czym poznajesz różnicę między zapisanym szkicem a ogłoszeniem widocznym dla innych?
+3. **4-06–4-08, szukam jako podróżnik.** W oknie gościa wejdź na [listę wypraw](http://127.0.0.1:3104/pl/wyprawy). Kliknij **Filtry**, wybierz Słowację, wpisz budżet minimum 500 i zastosuj. Otwórz swoją wyprawę. Czy rozumiesz, dlaczego wynik pasuje? Czy szczegóły wystarczają do decyzji o wyjeździe? Jeśli chcesz, obejrzyj tę samą stronę po angielsku lub zwęź okno i zanotuj, co trudniej znaleźć.
+4. **4-09, kończę zapisy.** Jako A kliknij **Zamknij wyprawę**, przeczytaj komunikat, anuluj, a następnie zamknij swoją wyprawę testową. Otwórz zapisany adres jako gość. Czy przed potwierdzeniem było jasne, co stanie się z ogłoszeniem i linkiem?
+
+**Tu możesz zakończyć.** Przy uwadze wystarczy np. „4-03, przy wyborze elastycznego terminu nie rozumiem różnicy między końcem okna a długością wyjazdu”. Możesz też wskazać rozwiązanie, które Ci odpowiada i warto zachować.
+
+<details>
+<summary>Szczegółowe kroki i przypadki graniczne 4-01–4-09 (do wykorzystania w razie potrzeby)</summary>
+
+#### 4-01. Zostawiam pomysł na później
+
+1. Kliknij **Utwórz wyprawę**, wróć do „Moje wyprawy” bez zapisu. Oczekuj dotychczasowej listy. Otwórz ponownie edytor i kliknij **Zapisz szkic** bez wypełniania pól.
+2. Na liście odszukaj **Szkic bez tytułu** ze statusem **Szkic**. Kliknij **Edytuj wyprawę**, wpisz tytuł „Tatry z Mirą – próba 4”, zapisz i odśwież. Zapamiętaj adres edytora. Oczekuj jednego szkicu z nową nazwą.
+3. Kliknij **Opublikuj** z samym tytułem. Sprawdź, czy formularz wskazuje brakujące pola. Wróć do listy i otwórz szkic. Nadal powinien być prywatny i zachować tytuł.
+
+#### 4-02. Układam trasę i sprawdzam tekst ogłoszenia
+
+1. Wpisz w **Plan podróży** „Dwa spacery po obu stronach Tatr”, w **Kogo szukam** „Osoby lubiące spokojne tempo”. Wybierz **Język treści** polski i styl trekkingowy. Do każdego z trzech pól tekstowych kolejno dopisz znak <, kliknij **Zapisz szkic**, odczytaj błąd i usuń znak. Wróć do poprawnych wartości.
+2. Kliknij **Dodaj lokalizację**. Spróbuj zapisać pusty przystanek – powinien pojawić się błąd. W polu kraju wpisz „Pols” i kliknij **Polska** na liście. Wpisz miasto „Zakopane”. Dodaj „Polska — Kraków” i „Słowacja” z pustym miastem. W każdym wierszu zatwierdź kraj kliknięciem sugestii. Dowolny tekst bez wyboru kraju nie wystarcza.
+3. Przy Słowacji kliknij **W górę**. Dodaj czwarty przystanek, usuń go przez **Usuń lokalizację**, zapisz i odśwież. Oczekuj trasy Polska — Zakopane, Słowacja, Polska — Kraków. Pierwszy wiersz nie może iść wyżej, ostatni niżej. Powtarzający się kraj i puste miasto są poprawne.
+4. **Granice pól.** Przy zapisie szkicu tekst z samych spacji ma zachować się jak pusty. Pola przy wklejaniu ograniczają tytuł do 120, plan do 10 000, „Kogo szukam” do 2000 i miasto do 120 znaków. Możesz przygotować dłuższy tekst przez kopiowanie w edytorze tekstowym, wkleić go i sprawdzić, czy nadmiar został obcięty. W mieście sprawdź też „<Kraków>” i przywróć „Kraków”. Jeden znak zwykłego tekstu jest dopuszczalny. Maksymalnie 50 przystanków, potem **Dodaj lokalizację** jest nieaktywne. Do dalszych prób pozostaw trzy przystanki i początkowe teksty.
+
+#### 4-03. Ustalam daty, koszty i wielkość grupy
+
+1. Wybierz **Dokładny**, ustaw obie daty na 10 czerwca 2027. Zapisz szkic – jeden dzień jest poprawny. Zmień koniec na 9 czerwca, zapisz – oczekuj błędu. Ustaw koniec na 14 czerwca.
+2. Wybierz **Elastyczny — okno dat**. Dla 10–14 czerwca wpisuj w **Długość wyjazdu (dni)** kolejno 0, 1, 5 i 6. Po każdej zmianie kliknij **Zapisz szkic**. 1 i 5 przechodzą, 0 i 6 wymagają poprawy. Ułamek jest błędny. Zostaw 3. Pole długości jest obowiązkowe przy publikacji elastycznego terminu, znika przy dokładnym. Serwerowy limit to 32 767 dni, także w szerokim oknie.
+3. W **Docelowa liczba osób** wypróbuj kolejno 1, 2, 50, 51 i 2,5. Po każdej próbie zapisz szkic. Poprawne skrajne wartości to 2 i 50. Zostaw 4, wliczając siebie.
+4. W obu polach budżetu wpisz 0 i zapisz. Potem ustaw od 500 do 100, spróbuj zapisać. Oczekuj błędu kolejności. Spróbuj ujemnej kwoty, trzech miejsc po przecinku i 100 000 000. Maksimum to 99 999 999,99, można podać tę samą wartość w obu polach. Wpisuj bez odstępów, zgodnie z separatorem obsługiwanym przez przeglądarkę. Na końcu zapisz **100–500 PLN na osobę**.
+5. Mając cały szkic, usuwaj po jednym: tytuł, plan, „Kogo szukam”, język, wszystkie style, rodzaj terminu, początek, koniec, długość elastyczną, liczbę osób i każdą z kwot. Za każdym razem kliknij **Opublikuj** i przywróć pole przed następną próbą. Oczekuj wskazania braku i statusu szkicu. Brak całej trasy był sygnalizowany w 4-01. Zakończ przyciskiem **Zapisz szkic**.
+
+#### 4-04. Rozpoznaję własny szkic i rozstrzygam równoczesną edycję
+
+1. W oknie B wejdź do „Moje wyprawy”. Szkicu A nie powinno tu być. Otwórz w B zapisany adres edytora A. Oczekuj komunikatu o braku wyprawy i braku możliwości zmiany jej pól. W oknie gościa otwórz [listę publiczną](http://127.0.0.1:3104/pl/wyprawy) – szkicu tam nie ma.
+2. W A otwórz ten sam szkic w dwóch kartach. W pierwszej zapisz plan „Wersja poranna”. W drugiej wpisz „Wersja wieczorna” i kliknij **Zapisz szkic**. Oczekuj informacji o nowszej wersji i zachowanego tekstu „Wersja wieczorna”.
+3. W drugiej karcie kliknij **Wczytaj aktualną wersję**. Powinien wrócić plan „Wersja poranna”. Wpisz ponownie początkowy plan z 4-02 i zapisz. Zamknij pierwszą kartę.
+
+#### 4-05. Publikuję i aktualizuję ogłoszenie
+
+1. Z kompletnym profilem i kontaktem A kliknij **Opublikuj**. W „Moje wyprawy” oczekuj jednej **Otwartej** wyprawy, akcji **Edytuj wyprawę**, **Publiczne szczegóły** i **Zamknij wyprawę**. Kliknij szczegóły i skopiuj adres na później.
+2. Wróć do edycji. Usuń „Kogo szukam”, kliknij **Zapisz zmiany**. Otwarta wyprawa wymaga kompletu. Przywróć tekst, zmień tytuł na „Tatry z Mirą – wspólne szlaki” i kliknij **Zapisz zmiany**. Otwórz wcześniejszy publiczny adres w oknie gościa. Oczekuj nowego tytułu i odpowiadającej mu końcówki adresu.
+3. **Wariant z kontem testowym bez profilu lub kontaktu.** W przeglądarce B, na pustym koncie przygotowanym w 4-00, utwórz jego własny kompletny szkic według 4-02 i 4-03. Kliknij **Opublikuj**. Bez profilu oczekuj prośby o uzupełnienie profilu. Skorzystaj z linku do konta, zapisz profil, wróć do tego samego szkicu. Bez kontaktu oczekuj prośby o prywatny kontakt. Dodaj kontakt na koncie i wróć przez „Moje wyprawy”. Szkic powinien być jeden i gotowy do publikacji. Pozostaw wyprawę B jako szkic i wróć do okna A. Limit publikacji jest powodem do odnotowania komunikatu, bez zamykania istniejących wypraw autora.
+
+#### 4-06. Czy jako gość wiem, dokąd jadę i ile jest miejsc?
+
+1. W oknie gościa otwórz listę i kliknij nowy tytuł A. Sprawdź tytuł, **Otwarta**, kolejność trzech miejsc, obie daty, informację o elastyczności, budżet na osobę i plan. W uczestnikach oczekuj **1 / 4** dla wyprawy bez zgłoszeń (trzy miejsca wolne).
+2. Porównaj kartę listy ze szczegółami. Na karcie powinno być **Polska, Słowacja · Europa**, na szczegółach ponownie Polska przy Krakowie. Spróbuj dowiedzieć się, kogo szuka autor, ile dni potrwa wyjazd i jak obejrzeć jego profil. Obecny ekran pomija te informacje lub przejście do profilu. Zapisz, czego jako podróżnik potrzebujesz. Wariant historycznej wyprawy demonstracyjnej może nie mieć profilu organizatora.
+
+#### 4-07. Szukam wyprawy po kraju, terminie, cenie i stylu
+
+1. W oknie gościa otwórz /pl/wyprawy, kliknij **Filtry**, zwiń i otwórz ponownie. Wybierz Polskę z podpowiedzi i kliknij **Zastosuj filtry**. Panel się zwija. Wyprawa A powinna wystąpić raz mimo dwóch polskich przystanków. Powtórz ze Słowacją, potem z Portugalią – tylko w ostatniej próbie wyprawa A ma zniknąć.
+2. Po każdej kolejnej próbie klikaj **Filtry → Wyczyść filtry**. Sprawdź pojedynczo: termin od 14 czerwca 2027 (jest) i od 15 czerwca (brak); budżet minimum 500 (jest) i 500,01 (brak); maksimum 100 (jest) i 99,99 (brak); styl trekkingowy (jest) i inny niezaznaczony styl (brak). W próbie dat ustaw też sam termin do 10 czerwca (jest), następnie do 9 czerwca (brak). „Brak” dotyczy tytułu A, inne wyniki zależą od lokalnych danych.
+3. Po wyczyszczeniu ustaw jednocześnie Słowację, 14–16 czerwca, budżet 500–600 i trekking. Zastosuj. Oczekuj tytułu A i licznika sześciu użytych pól na przycisku. Skopiuj adres do nowej karty, odśwież i rozwiń panel. Oczekuj tych samych wyników i ustawień. Zmień tylko styl na inny – A znika. Spróbuj odwróconego budżetu lub dat, zastosuj, następnie popraw lub wyczyść filtry. Oczekuj błędu i możliwości powrotu do wyników.
+4. Wyczyść filtry. Przy co najmniej dwóch otwartych wyprawach ustaw **Wyników na stronie → 1**, zastosuj. Pierwsza strona powinna pokazać najnowszą publikację. Kliknij **Następna**, potem **Poprzednia**. Tytuły powinny się zmienić i wrócić. Na drugiej stronie zastosuj nowy filtr – numer powinien wrócić do 1. Wyczyść filtry i sprawdź powrót do domyślnych 20 wyników na stronę.
+
+#### 4-08. Używam listy po angielsku i na małym ekranie
+
+1. Na polskiej liście wybierz kraj, wpisując „Anglia”. Kliknij sugestię **Wielka Brytania**, zastosuj. Kliknij **PL → EN**. Otwórz **Filters** i sprawdź **United Kingdom**. Wyszukaj także „England” i zatwierdź sugestię strzałką w dół oraz Enter. Wyczyść filtry. Otwórz wyprawę A. Etykiety i nazwy krajów mają być angielskie, własny tytuł i plan mają pozostać po polsku.
+2. Na telefonie z dostępem do lokalnej aplikacji lub w zwężonym oknie Maca otwórz listę. Rozwiń filtry, wybierz kraj, przewiń do zastosowania, otwórz wynik i przejrzyj trasę. Na koncie A otwórz też edytor i przejdź do ostatniego pola budżetu. Sprawdź, czy przyciski, menu języka, komunikaty i selektor kraju mieszczą się na ekranie i pozostają dostępne. Zapisz urządzenie lub „wąskie okno”. Wróć do PL przed kolejną próbą.
+
+#### 4-09. Kończę zapisy, zachowując publiczny link
+
+1. W A otwórz edytor testowej wyprawy, zapamiętaj zapisany plan, dopisz do niego „niezapisane”. Kliknij **Zamknij wyprawę**, najpierw anuluj. Wyprawa ma pozostać otwarta, wpis nadal w formularzu.
+2. Kliknij ponownie i potwierdź **wyłącznie dla tej testowej wyprawy**. Odśwież „Moje wyprawy”. Oczekuj **Zamknięta**, **Zobacz wyprawę** i **Publiczne szczegóły**. W podglądzie pola są zablokowane, plan zawiera ostatnią zapisaną wersję. Brak operacji ponownego otwarcia.
+3. W oknie gościa odśwież listę bez filtrów, a potem otwórz skopiowany wcześniej adres szczegółów. Wyprawa znika z listy, pod adresem pozostają tytuł i oznaczenie **Zamknięta**.
+
+**Tutaj zatrzymaj odbiór.** Podaj ID próby, wykonaną czynność, widoczny wynik i oczekiwanie albo potwierdź odbiór bez uwag. Zgłoszenia i udostępnianie kontaktów sprawdzimy po osobnej decyzji o rozpoczęciu etapu 5.
+
+</details>

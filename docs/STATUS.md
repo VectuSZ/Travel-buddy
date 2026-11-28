@@ -1,8 +1,12 @@
 # Status projektu
 
-## Stan na 26 listopada 2026
+## Stan na 28 listopada 2026
 
-Etapy 1–7B są zaimplementowane lokalnie. Autor odebrał 1, 2A i 2B. Etap 3 oczekuje na ręczne sprawdzenie profilu, kontaktów i prywatności według checklisty w ACCEPTANCE.md. Po decyzji autora kolejność to 4 → 5 → 6 → 7A → 7B. Dowody i otwarte próby pozostają w [historii odbiorów](ACCEPTANCE.md).
+Etapy 1–7B są zaimplementowane lokalnie. Autor odebrał 1, 2A, 2B i 3. Etap 4 oczekuje na ręczny odbiór. Udostępnianie kontaktów po zaakceptowaniu zgłoszenia autor sprawdzi w etapie 5. Dalej pozostają etapy 6, 7A i 7B. Dowody i otwarte próby pozostają w [historii odbiorów](ACCEPTANCE.md).
+
+Odbiór techniczny etapu 4 z 28 listopada: backend 6/6, E2E 5/5 po powtórzeniu, SSR 4/4, wąski ekran 4/4. W szczegółach brakuje części danych ogłoszenia i przejścia do profilu organizatora. Ręczny odbiór ma własną bazę travel_buddy_manual_4_20261128 i adres http://127.0.0.1:3104. Autor zaczyna od rejestracji dwóch nowych kont w 4-00, następnie wykonuje 4-01–4-09.
+
+W etapie 3 przeszły testy profilu (6/6), Google OIDC (14/14), relacji wyprawy przez klasę potomną (5/5) i scenariusz Chromium (1/1). Bezpośrednie uruchomienie klasy testów relacji dało pięć błędów inicjalizacji CDI. Wynik dodatkowej próby mobilnej Chromium pozostał niepotwierdzony.
 
 | Etap | Zakres | Status |
 | --- | --- | --- |
@@ -634,3 +638,7 @@ przewijania, wyjątków JS i zapisanych cookies w tej anonimowej próbie.
 Na zrzucie PL przy 320 px nagłówek i stopka zawijają się czytelnie.
 Próba obejmowała emulację Chromium. Natywne Safari i fizyczny ekran
 telefonu nie były przedmiotem tego sprawdzenia.
+
+### Ręczny odbiór etapu 3 — uzupełnienie instrukcji
+
+Autor wykonał 3-A–3-N. Dalsza [instrukcja od 3-O](ACCEPTANCE.md#odbior-uzytkownika-3o) obejmuje funkcje widoczne na ekranie. Weryfikacja bezpieczeństwa i prywatności pozostaje po stronie Codex. [Zasady przygotowania instrukcji](INSTRUKCJE-ODBIORU.md) obowiązują również przy kolejnych etapach. Autor następnie odebrał etap 3 bez uwag wymagających poprawek.

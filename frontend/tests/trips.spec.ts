@@ -1,6 +1,7 @@
 import {test,expect} from '@playwright/test'
 for(const lang of ['pl','en']){
  test('trip lifecycle, contact rejection and conflict '+lang,async({page,browser})=>{
+  test.setTimeout(90_000)
   const prefix=lang==='en'?'/en':'',en=lang==='en',stamp=Date.now()
   const title='Trip UI '+lang+' '+stamp
   async function register(p:typeof page,suffix:string){
@@ -10,7 +11,7 @@ for(const lang of ['pl','en']){
    await p.locator('[name=confirmation]').fill('Long trip UI password 123!')
    await p.locator('[type=checkbox]').check()
    await p.locator('[type=submit]').click()
-   await expect(p.locator('[name=displayName]')).toBeVisible()
+   await expect(p.locator('[name=displayName]')).toBeVisible({timeout:20_000})
   }
   const button=(pl:string,english:string)=>page.getByRole('button',{name:en?english:pl,exact:true})
   await register(page,'a')
@@ -23,9 +24,13 @@ for(const lang of ['pl','en']){
   await page.getByRole('link',{name:en?'My trips':'Moje wyprawy',exact:true}).click()
   await page.getByRole('link',{name:en?'Create trip':'Utwórz wyprawę'}).click()
   expect((await (await page.request.get('/api/v1/me/trips')).json()).length).toBe(0)
-  await page.locator('[name=title]').fill(title)
   await button('Zapisz szkic','Save draft').click()
   await expect(page).toHaveURL(/edit\?id=/)
+  await button('Opublikuj','Publish').click()
+  await expect(page.locator('[name=title] + .field-error')).toBeVisible()
+  await page.locator('[name=title]').fill(title)
+  await button('Zapisz szkic','Save draft').click()
+  await expect(page.getByRole('status')).toContainText(en?'Saved.':'Zapisano.')
   const editUrl=page.url(),id=new URL(editUrl).searchParams.get('id')!
   for(const url of [prefix+'/trips/'+id,(en?'/en/trips/':'/pl/wyprawy/')+id+'/secret-slug']){
    const response=await page.request.get(url,{maxRedirects:0})
@@ -48,8 +53,19 @@ for(const lang of ['pl','en']){
   await page.getByRole('option',{name:en?'Slovakia':'Słowacja',exact:true}).click()
   await button('W górę','Move up').nth(1).click()
   await expect(page.locator('[name=countryCode]').first()).toHaveValue(en?'Slovakia':'Słowacja')
+  await button('Dodaj lokalizację','Add location').click()
+  await button('Usuń lokalizację','Remove location').last().click()
+  await expect(page.locator('[name=countryCode]')).toHaveCount(2)
   await page.locator('[name=contentLanguage]').selectOption('en')
   await page.locator('[name=styles][value=trekking]').check()
+  await page.locator('[name=dateMode]').selectOption('EXACT')
+  await page.locator('[name=dateFrom]').fill('2027-06-10')
+  await page.locator('[name=dateTo]').fill('2027-06-10')
+  await button('Zapisz szkic','Save draft').click()
+  await expect(page.getByRole('status')).toContainText(en?'Saved.':'Zapisano.')
+  await page.reload()
+  await expect(page.locator('[name=dateTo]')).toHaveValue('2027-06-10')
+  await expect(page.locator('[name=durationDays]')).toHaveCount(0)
   await page.locator('[name=dateMode]').selectOption('FLEXIBLE')
   await page.locator('[name=dateFrom]').fill('2027-06-01')
   await page.locator('[name=dateTo]').fill('2027-06-10')
@@ -57,6 +73,18 @@ for(const lang of ['pl','en']){
   await page.locator('[name=targetPeople]').fill('4')
   await page.locator('[name=budgetMin]').fill('100')
   await page.locator('[name=budgetMax]').fill('500')
+  for (const [field, invalid, valid] of [
+   ['dateTo', '2027-05-31', '2027-06-10'],
+   ['durationDays', '11', '3'],
+   ['targetPeople', '51', '4'],
+   ['budgetMax', '99', '500'],
+  ] as const) {
+   const input = page.locator('[name='+field+']')
+   await input.fill(invalid)
+   await button('Zapisz szkic','Save draft').click()
+   await expect(input.locator('..').locator('.field-error')).toBeVisible()
+   await input.fill(valid)
+  }
   await button('Opublikuj','Publish').click()
   await expect(page.getByRole('alert')).toContainText(en?'private contact':'prywatny kontakt')
   await expect(page).toHaveURL(editUrl)
@@ -124,15 +152,31 @@ for(const lang of ['pl','en']){
    expect(html).toContain('<title>'+title+' — Travel Buddy</title>')
    const privateHtml=await (await page.request.get(editUrl)).text()
    expect(privateHtml).not.toContain(title)
+   const revisedTitle = title+' updated'
+   await page.locator('[name=title]').fill(revisedTitle)
+   await button('Zapisz zmiany','Save changes').click()
+   await expect(page.getByRole('status')).toContainText(en?'Saved.':'Zapisano.')
+   await b.goto(detailsUrl)
+   await expect(b.getByRole('heading',{name:revisedTitle})).toBeVisible()
+   await expect(b).not.toHaveURL(detailsUrl)
+   await b.goto(editUrl)
+   await expect(b.getByText(en?'Your trip was not found.':'Nie znaleziono Twojej wyprawy.',{exact:true})).toBeVisible()
+   await expect(b.locator('[name=title]')).toHaveCount(0)
+   await page.locator('[name=itinerary]').fill('Unsaved before closing')
+   page.once('dialog',dialog=>dialog.dismiss())
+   await button('Zamknij wyprawę','Close trip').click()
+   await expect(page.locator('[name=itinerary]')).toHaveValue('Unsaved before closing')
    page.once('dialog',d=>d.accept())
    await button('Zamknij wyprawę','Close trip').click()
    await expect(page.locator('main')).toContainText(en?'Closed':'Zamknięta')
    await page.goto(prefix+'/my-trips')
    await expect(page.locator('article')).toContainText(en?'Closed':'Zamknięta')
    await b.goto(searchUrl)
-   await expect(b.locator('main')).not.toContainText(title)
+   await expect(b.locator('main')).not.toContainText(revisedTitle)
    await b.goto(detailsUrl)
-   await expect(b.getByRole('heading',{name:title})).toBeVisible()
+   await expect(b.getByRole('heading',{name:revisedTitle})).toBeVisible()
+   await expect(b.locator('main')).toContainText('Walk and explore')
+   await expect(b.locator('main')).not.toContainText('Unsaved before closing')
    await expect(b.locator('.trip-status')).toHaveText(en?'Closed':'Zamknięta')
    await expect(b.locator('[name=applicationMessage]')).toHaveCount(0)
   }finally{await second.close()}
